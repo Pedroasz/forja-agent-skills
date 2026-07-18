@@ -7,12 +7,12 @@
 3. Fazer somente simulation `read-only` ou `dry-run`; planning-only nunca executa restore ou rollback.
 4. Registrar row, object ou file count e checksum before/after para o mesmo conjunto.
 5. Preparar `rollback-of-recovery` antes da autorizacao.
-6. Exigir `authorization environment`, `authorization action` e `authorization scope` estruturados e exatamente iguais aos campos requested; substring nao basta.
+6. Exigir `authorization environment` e `authorization action` estruturados e exatamente iguais aos campos requested, e `minimum scope == requested scope == authorization scope`; substring nao basta.
 7. Executar somente quando o gate inteiro estiver verdadeiro; fazer `post-verify` e preservar evidencia.
 
 ## Limites de escopo
 
-Cache: nomear key ou namespace; nunca permitir que um cache rollback autorize restore amplo de data. Banco: nomear row/chave/tenant; migration recovery exige composition com migration, incident ou authorization aplicaveis. Storage: nomear object/file e caminho. `minimum scope` deve corresponder exatamente a `requested scope` ou ser comprovadamente menor; rejeite all data, database/table/tenant inteiro ou full, wildcard, e todos os records/rows/files/objects/cache. Source e target devem ser validados e distintos; nao inventar IDs.
+Cache: nomear key ou namespace; nunca permitir que um cache rollback autorize restore amplo de data. Banco: nomear row/chave/tenant; migration recovery exige composition com migration, incident ou authorization aplicaveis. Storage: nomear object/file e caminho. O gate automatizado aceita somente `minimum scope == requested scope == authorization scope`; nao infira hierarquia ou subconjunto por texto livre. Para uma recuperacao menor, crie novo `requested scope` e obtenha nova authorization exata. Rejeite all data, database/table/tenant inteiro ou full, wildcard, e todos os records/rows/files/objects/cache. Source e target devem ser validados e distintos; nao inventar IDs.
 
 ## Bloqueios
 

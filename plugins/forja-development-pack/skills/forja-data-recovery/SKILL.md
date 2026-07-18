@@ -19,7 +19,7 @@ Nao use para limpar cache comum, editar documentacao, ou reverter apenas codigo 
 
 ## Required inputs
 
-Exija os campos estruturados por linha `requested environment`, `requested action`, `requested scope`, `source`, `target` e `minimum scope`; normalize valores e rejeite placeholders. `source` e `target` devem ser distintos. Exija `copy-first`, `immutable snapshot`, `backup reference`, contagens de row, object ou file e checksum before/after, `read-only dry-run`, `rollback-of-recovery` e `post-verify`. Para producao, exija `authorization environment`, `authorization action` e `authorization scope` exatamente iguais aos campos requested; autorizacao por substring, escopo amplo ou IDs inventados nao vale.
+Exija os campos estruturados por linha `requested environment`, `requested action`, `requested scope`, `source`, `target` e `minimum scope`; normalize valores e rejeite placeholders. `source` e `target` devem ser distintos. Exija `copy-first`, `immutable snapshot`, `backup reference`, contagens de row, object ou file e checksum before/after, `read-only dry-run`, `rollback-of-recovery` e `post-verify`. Para producao, o gate automatizado exige `minimum scope == requested scope == authorization scope`, alem de `authorization environment` e `authorization action` exatamente iguais aos campos requested; autorizacao por substring, escopo amplo ou IDs inventados nao vale.
 
 ## Expected outputs
 
@@ -35,7 +35,7 @@ Leia [recovery-runbook.md](references/recovery-runbook.md). Siga: validar source
 
 ## Required checks
 
-Confirme que source e target sao distintos e identificados, que a copia e imutavel e recuperavel, e que dry-run e read-only. `minimum scope` deve ser igual a `requested scope` ou comprovadamente menor; rejeite `all data`, database/table/tenant inteiro ou full, wildcard, e todos os records, rows, files, objects ou cache. Limite cache a key/namespace, banco a row/tenant e Storage a object/file explicitamente listados. Registre count e checksum before/after para cada row, object ou file afetado. Verifique que rollback-of-recovery restaura o estado anterior da propria recovery e que post-verify mede o mesmo escopo. Nao aceite autorizacao generica: os tres campos authorization devem corresponder exatamente aos campos requested.
+Confirme que source e target sao distintos e identificados, que a copia e imutavel e recuperavel, e que dry-run e read-only. O gate automatizado aceita somente `minimum scope == requested scope == authorization scope`; nao infira hierarquia ou subconjunto por texto livre. Se desejar uma recuperacao menor, reescreva-a como novo `requested scope` e obtenha nova authorization exata. Rejeite `all data`, database/table/tenant inteiro ou full, wildcard, e todos os records, rows, files, objects ou cache. Limite cache a key/namespace, banco a row/tenant e Storage a object/file explicitamente listados. Registre count e checksum before/after para cada row, object ou file afetado. Verifique que rollback-of-recovery restaura o estado anterior da propria recovery e que post-verify mede o mesmo escopo. Nao aceite autorizacao generica: os tres campos authorization devem corresponder exatamente aos campos requested.
 
 ## Stop conditions
 
