@@ -1007,6 +1007,28 @@ function Assert-SkillPackSuite {
     }
     Write-Output 'PASS: duplicate prose threshold is 240 normalized characters and 40 words'
 
+    $routerSkillPath = Join-Path $skillsRoot 'forja-task-router/SKILL.md'
+    $routerReferencePath = Join-Path $skillsRoot 'forja-task-router/references/routing-contract.md'
+    $routerSkill = Get-Content -LiteralPath $routerSkillPath -Raw
+    $routerReference = Get-Content -LiteralPath $routerReferencePath -Raw
+    foreach ($requirement in @(
+        'highest risk determines the risk level and gates',
+        'NEVER replaces lower-risk applicable skills',
+        'keyboard.*focus.*contrast.*modal.*accessibility.*forja-ux-accessibility.*forja-safe-frontend-change',
+        'performance.*forja-performance-audit',
+        'explicit test strategy.*forja-test-strategy',
+        'documentation.*evidence.*report.*forja-documentation',
+        'review.*forja-independent-review',
+        'release.*forja-release-pipeline',
+        'restore.*rollback.*recovery.*copy-first.*forja-data-recovery',
+        'confirmed outage.*incident.*data loss.*forja-incident-response',
+        'schema.*RLS.*migration.*forja-supabase-migration.*forja-auth-storage-safety.*forja-test-strategy'
+    )) {
+        if ("$routerSkill`n$routerReference" -notmatch "(?is)$requirement") { Add-Failure "task router compositional requirement is missing: $requirement" }
+    }
+    if ($routerReference -notmatch '(?is)modal focus.*RLS.*forja-safe-frontend-change.*forja-ux-accessibility.*forja-supabase-migration.*forja-auth-storage-safety.*forja-test-strategy') { Add-Failure 'task router reference is missing the mixed HIGH modal-focus and RLS selection' }
+    if ($routerReference -notmatch '(?is)confirmed outage.*restore.*test.*documentation.*forja-incident-response.*forja-data-recovery.*forja-test-strategy.*forja-documentation') { Add-Failure 'task router reference is missing the CRITICAL incident-recovery-test-documentation selection' }
+
     # Keep the test tree portable: tracked test files must not embed a personal absolute path.
     foreach ($testFile in @(Get-ChildItem -LiteralPath $PSScriptRoot -Recurse -File | Where-Object { $_.Extension -in @('.ps1', '.json') })) {
         if ((Get-Content -LiteralPath $testFile.FullName -Raw) -match '(?i)[a-z]:\\users\\') { Add-Failure "tracked test file contains a personal absolute path: $($testFile.Name)" }
@@ -1061,6 +1083,14 @@ function Assert-SkillPackSuite {
         foreach ($case in $cases) {
             $actual = Get-SkillPackRouterRecord -Prompt $case.prompt
             if ($null -eq $actual) { Add-Failure 'integration prompt did not derive a router record from its text'; continue }
+            $requiredSelection = if ($case.prompt -match '(?i)modal dialog.*RLS migration') {
+                @('forja-safe-frontend-change', 'forja-ux-accessibility', 'forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy')
+            }
+            elseif ($case.prompt -match '(?i)confirmed FORJA production outage.*restore') {
+                @('forja-incident-response', 'forja-data-recovery', 'forja-test-strategy', 'forja-documentation')
+            }
+            else { @() }
+            if ($requiredSelection.Count -eq 0 -or (@($actual.selectedSkills) -join '|') -ne ($requiredSelection -join '|')) { Add-Failure 'controlled integration selection does not match its mixed prompt signals' }
             foreach ($field in @('taskSummary', 'riskLevel', 'selectedSkills', 'skillsDeliberatelyNotSelected', 'requiredApprovals', 'prohibitedActions', 'validationPlan', 'stopConditions')) {
                 $expectedValue = @($case.expectedRecord.$field) -join '|'
                 $actualValue = @($actual.$field) -join '|'
