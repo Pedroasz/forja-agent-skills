@@ -1007,13 +1007,52 @@ function Assert-SkillPackSuite {
     }
     Write-Output 'PASS: duplicate prose threshold is 240 normalized characters and 40 words'
 
-    $python = 'C:\Users\Pedro\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
-    $validator = 'C:\Users\Pedro\.codex\skills\.system\skill-creator\scripts\quick_validate.py'
-    if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $validator -PathType Leaf)) { Add-Failure 'official quick_validate controller prerequisites are missing' }
+    # Keep the test tree portable: tracked test files must not embed a personal absolute path.
+    foreach ($testFile in @(Get-ChildItem -LiteralPath $PSScriptRoot -Recurse -File | Where-Object { $_.Extension -in @('.ps1', '.json') })) {
+        if ((Get-Content -LiteralPath $testFile.FullName -Raw) -match '(?i)[a-z]:\\users\\') { Add-Failure "tracked test file contains a personal absolute path: $($testFile.Name)" }
+    }
+
+    $validator = if (-not [string]::IsNullOrWhiteSpace($env:FORJA_QUICK_VALIDATE)) { $env:FORJA_QUICK_VALIDATE } else { Join-Path $env:USERPROFILE '.codex\skills\.system\skill-creator\scripts\quick_validate.py' }
+    $python = $null
+    if (-not [string]::IsNullOrWhiteSpace($env:FORJA_VALIDATION_PYTHON)) {
+        $python = $env:FORJA_VALIDATION_PYTHON
+    }
     else {
-        foreach ($directory in $skillDirectories) {
-            & $python $validator $directory.FullName
-            if ($LASTEXITCODE -ne 0) { Add-Failure "official quick_validate failed for $($directory.Name)" }
+        foreach ($candidateName in @('python', 'python3', 'py')) {
+            $candidate = Get-Command $candidateName -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -ne $candidate) { $python = $candidate.Source; break }
+        }
+        if ([string]::IsNullOrWhiteSpace($python)) {
+            $bundledPython = Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
+            if (Test-Path -LiteralPath $bundledPython -PathType Leaf) { $python = $bundledPython }
+        }
+    }
+    $localPyYaml = Join-Path $repoRoot '.superpowers\runtime\pyyaml'
+    $pyYamlPath = if (-not [string]::IsNullOrWhiteSpace($env:FORJA_VALIDATION_PYTHONPATH)) { $env:FORJA_VALIDATION_PYTHONPATH } elseif (Test-Path -LiteralPath $localPyYaml -PathType Container) { $localPyYaml } else { $null }
+    if (-not [string]::IsNullOrWhiteSpace($pyYamlPath) -and -not (Test-Path -LiteralPath $pyYamlPath -PathType Container)) { Add-Failure 'FORJA_VALIDATION_PYTHONPATH does not resolve to a directory containing PyYAML' }
+    if ([string]::IsNullOrWhiteSpace($python) -or -not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $validator -PathType Leaf)) { Add-Failure 'official quick_validate controller prerequisites are missing; set FORJA_VALIDATION_PYTHON and FORJA_QUICK_VALIDATE to valid local executables' }
+    else {
+        $hadPythonUtf8 = Test-Path Env:PYTHONUTF8
+        $oldPythonUtf8 = $env:PYTHONUTF8
+        $hadPythonPath = Test-Path Env:PYTHONPATH
+        $oldPythonPath = $env:PYTHONPATH
+        try {
+            $env:PYTHONUTF8 = '1'
+            if (-not [string]::IsNullOrWhiteSpace($pyYamlPath) -and (Test-Path -LiteralPath $pyYamlPath -PathType Container)) {
+                $env:PYTHONPATH = if ($hadPythonPath) { "$pyYamlPath$([System.IO.Path]::PathSeparator)$oldPythonPath" } else { $pyYamlPath }
+            }
+            else { Write-Output 'INFO: no controlled PyYAML path found; quick_validate will use the interpreter dependency and report an actionable failure if unavailable' }
+            foreach ($directory in $skillDirectories) {
+                & $python $validator $directory.FullName
+                if ($LASTEXITCODE -ne 0) {
+                    $dependencyHint = if ([string]::IsNullOrWhiteSpace($pyYamlPath)) { '; configure FORJA_VALIDATION_PYTHONPATH with a PyYAML directory' } else { '' }
+                    Add-Failure "official quick_validate failed for $($directory.Name)$dependencyHint"
+                }
+            }
+        }
+        finally {
+            if ($hadPythonUtf8) { $env:PYTHONUTF8 = $oldPythonUtf8 } else { Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue }
+            if ($hadPythonPath) { $env:PYTHONPATH = $oldPythonPath } else { Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue }
         }
     }
 
