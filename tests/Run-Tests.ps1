@@ -213,11 +213,18 @@ function Get-SkillSelection {
     $hasProductionSignal = $text -match '\b(production|produ[cç][aã]o|prod)\b'
     $isConfirmedIncident = -not $isHypotheticalIncident -and $hasIncidentSignal -and ($hasProductionSignal -or $text -match '\b(outage|data loss|perda de dados)\b')
     $incidentSelection = if (($isHypotheticalIncident -and $hasIncidentSignal) -or $isConfirmedIncident) { @('forja-incident-response') } else { @() }
+    $isDataRecovery = $text -match '\b(data recovery|restore|rollback|recover|recovery|restaura[cç][aã]o|recupera[cç][aã]o|reverter cache)\b'
+    $dataRecoverySelection = if ($isDataRecovery) { @('forja-data-recovery') } else { @() }
+    if ($isDataRecovery -and -not ($text -match '\b(migration|schema|table|index|rls|policy|authentication|authenticated|unauthenticated|session|workspace|tenant|permission)\b')) {
+        return @($incidentSelection + $dataRecoverySelection)
+    }
     $isExplicitReviewArtifact = $text -match '\b(review|audit)\b' -and $text -match '\b(pr|pull request|diff)\b'
     $isGenericChangeReviewBeforeMerge = $text -match '\b(review|audit)\b' -and $text -match '\bbefore merge\b' -and $text -match '\b(code|documentation|change)\b'
     $isIndependentReview = $isExplicitReviewArtifact -or $isGenericChangeReviewBeforeMerge
     $isMigration = $text -match '\b(migration|schema|table|index|rls|policy)\b'
     $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|rls|policy|permission)\b' -or $text -match '\bstorage\b.*\b(access|upload|bucket|object|permission)\b|\b(access|upload|bucket|object|permission)\b.*\bstorage\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
+    $isCacheRecovery = $isDataRecovery -and $text -match '\bcache\b'
+    if ($isCacheRecovery -and -not ($text -match '\b(authentication|authenticated|unauthenticated|workspace|rls|policy|permission|tenant)\b')) { $isBoundary = $false }
     $isPackageRelease = $text -match '\b(development pack|skills package)\b' -and $text -match '\b(release|version|changelog|tag)\b'
     $isSaasRelease = $text -match '\bsaas\b' -and $text -match '\b(release|deploy|production)\b'
     $isReleaseReport = $text -match '\brelease report\b'
@@ -235,7 +242,7 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($incidentSelection + $documentationSelection + $selection)
+        return @($incidentSelection; $dataRecoverySelection; $documentationSelection; $selection)
     }
     if ($isMigration) {
         $selection = @('forja-supabase-migration')
@@ -243,7 +250,7 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($incidentSelection + $documentationSelection + $selection)
+        return @($incidentSelection; $dataRecoverySelection; $documentationSelection; $selection)
     }
     if ($isBoundary) {
         $selection = @('forja-auth-storage-safety')
@@ -251,49 +258,85 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($incidentSelection + $documentationSelection + $selection)
+        return @($incidentSelection; $dataRecoverySelection; $documentationSelection; $selection)
     }
     if ($isRelease) {
         $selection = @($documentationSelection + @('forja-release-pipeline'))
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($incidentSelection + $selection)
+        return @($incidentSelection + $dataRecoverySelection + $selection)
     }
     if ($isIndependentReview) {
         $selection = @('forja-independent-review')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return @($incidentSelection + $selection)
+        return @($incidentSelection + $dataRecoverySelection + $selection)
     }
     if ($isDocumentation) {
         $selection = @('forja-documentation')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return @($incidentSelection + $selection)
+        return @($incidentSelection + $dataRecoverySelection + $selection)
     }
     if ($isPerformanceAudit) {
         $selection = @('forja-performance-audit')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return @($incidentSelection + $selection)
+        return @($incidentSelection + $dataRecoverySelection + $selection)
     }
     $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|botão|botao|form|screen|tela|viewport)\b'
     $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
     $isFullRedesign = $text -match '\bfull redesign\b'
     if ($isBackendOrApiWithoutUi -or $isFullRedesign) {
-        if ($isTestStrategy) { return @($incidentSelection + @('forja-test-strategy')) }
-        return $incidentSelection
+        if ($isTestStrategy) { return @($incidentSelection + $dataRecoverySelection + @('forja-test-strategy')) }
+        return @($incidentSelection + $dataRecoverySelection)
     }
     $isScopedMobileOrFormAccessibility = $text -match '\b(mobile|form)\b.*\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b|\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b.*\b(mobile|form)\b'
     if ($isScopedMobileOrFormAccessibility -or $text -match '\b(contrast|keyboard|focus order|focus return|focus trap|modal dialog|accessibility|semantic html|touch target|reduced motion)\b') {
         $selection = @('forja-ux-accessibility')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return @($incidentSelection + $selection)
+        return @($incidentSelection + $dataRecoverySelection + $selection)
     }
     if ($text -match '\b(button|botão|botao|navigation|navegação|navegacao|frontend|ui|form|html|css|javascript)\b') {
         $selection = @('forja-safe-frontend-change')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return @($incidentSelection + $selection)
+        return @($incidentSelection + $dataRecoverySelection + $selection)
     }
-    if ($isTestStrategy) { return @($incidentSelection + @('forja-test-strategy')) }
-    return $incidentSelection
+    if ($isTestStrategy) { return @($incidentSelection + $dataRecoverySelection + @('forja-test-strategy')) }
+    return @($incidentSelection + $dataRecoverySelection)
+}
+
+function Get-DataRecoveryOutcome {
+    param([string]$Project, [string]$Prompt)
+
+    if ((Get-SkillSelection -Project $Project -Prompt $Prompt) -notcontains 'forja-data-recovery') { return $null }
+
+    $text = $Prompt.ToLowerInvariant()
+    $placeholder = '(?:unknown|n/?a|now|yes|placeholder|tbd|none)'
+    $hasValue = {
+        param([string]$Label)
+        $text -match "(?im)\b$Label\s*:\s*(?!$placeholder(?:\.|\s|;|$))[a-z0-9][a-z0-9._:/-]{3,}"
+    }
+    $hasImmutableSnapshot = & $hasValue 'immutable snapshot'
+    $hasBackupReference = & $hasValue 'backup reference'
+    $hasSource = & $hasValue 'source'
+    $hasTarget = & $hasValue 'target'
+    $hasBeforeCount = $text -match '(?im)\bbefore\s+(?:row\s+|object\s+|file\s+)?count\s*:\s*\d+'
+    $hasAfterCount = $text -match '(?im)\bafter\s+(?:row\s+|object\s+|file\s+)?count\s*:\s*\d+'
+    $hasBeforeChecksum = & $hasValue 'before checksum'
+    $hasAfterChecksum = & $hasValue 'after checksum'
+    $hasAuthorization = $text -match '(?is)\bspecific authorization\s*:\s*environment\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[a-z0-9][a-z0-9._:/-]{3,}\s*;\s*action\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^;\r\n]{4,}\s*;\s*scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{4,}'
+    $isPlanningOnly = $text -match '\b(plan|planning|hypothetically|hypothetical|do not execute)\b'
+    $actionText = [regex]::Replace($text, '\b(?:do not|don''t|no)\s+(?:delete|drop|truncate|purge|wipe|erase|remove|destroy)\b[^.;]*', '')
+    $hasDestructiveIntent = $actionText -match '\b(delete|drop|truncate|purge|wipe|erase|remove|destroy)\b.{0,80}\b(backups?|data|files?|objects?|production)\b|\b(delete|drop|truncate|purge|wipe|erase|remove|destroy)\s+all\b'
+
+    return [PSCustomObject]@{
+        risk = 'CRITICAL'
+        copyPreserved = ($text -match '\bcopy-first\b') -and $hasImmutableSnapshot -and $hasBackupReference
+        simulationPassed = $text -match '\bread-only\s+dry-run\s+passed\b'
+        minimumScope = $text -match '\bminimum scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}'
+        countsChecksums = $hasBeforeCount -and $hasAfterCount -and $hasBeforeChecksum -and $hasAfterChecksum
+        authorizationSpecific = $hasAuthorization
+        executionAllowed = (($text -match '\bcopy-first\b') -and $hasImmutableSnapshot -and $hasBackupReference -and $hasSource -and $hasTarget -and ($text -match '\bread-only\s+dry-run\s+passed\b') -and ($text -match '\bminimum scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and $hasBeforeCount -and $hasAfterCount -and $hasBeforeChecksum -and $hasAfterChecksum -and $hasAuthorization -and ($text -match '\brollback-of-recovery\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and ($text -match '\bpost-verify\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and -not $isPlanningOnly -and -not $hasDestructiveIntent)
+        postVerify = $text -match '\bpost-verify\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}'
+    }
 }
 
 function Get-TestStrategyOutcome {
@@ -499,6 +542,16 @@ function Assert-SkillTriggerSuite {
             }
         }
 
+        if ($null -ne $route[0].dataRecoveryOutcome) {
+            $outcome = Get-DataRecoveryOutcome -Project $case.project -Prompt $case.prompt
+            if ($null -eq $outcome) { Add-Failure "$($case.id) data recovery outcome is missing" }
+            else {
+                foreach ($property in @('risk', 'copyPreserved', 'simulationPassed', 'minimumScope', 'countsChecksums', 'authorizationSpecific', 'executionAllowed', 'postVerify')) {
+                    if ($route[0].dataRecoveryOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) data recovery outcome $property does not match actual prompt text" }
+                }
+            }
+        }
+
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) {
@@ -510,6 +563,9 @@ function Assert-SkillTriggerSuite {
                 }
                 elseif ($route[0].PSObject.Properties.Name -contains 'mutatedIncidentOutcome') {
                     # Incident mutations may preserve selection while changing state, authority, or evidence gates.
+                }
+                elseif ($route[0].PSObject.Properties.Name -contains 'mutatedDataRecoveryOutcome') {
+                    # Data recovery mutations preserve routing while changing safety gates.
                 }
                 elseif ($null -eq $route[0].releaseKind) {
                     Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence"
@@ -561,6 +617,12 @@ function Assert-SkillTriggerSuite {
                 $mutatedIncidentOutcome = Get-IncidentResponseOutcome -Project $case.project -Prompt $case.mutatedPrompt
                 foreach ($property in @('incidentState', 'risk', 'sequence', 'executionAllowed', 'evidencePreserved')) {
                     if ($route[0].mutatedIncidentOutcome.$property -ne $mutatedIncidentOutcome.$property) { Add-Failure "$($case.id) mutated incident outcome $property does not match actual prompt text" }
+                }
+            }
+            if ($route[0].PSObject.Properties.Name -contains 'mutatedDataRecoveryOutcome') {
+                $mutatedOutcome = Get-DataRecoveryOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                foreach ($property in @('risk', 'copyPreserved', 'simulationPassed', 'minimumScope', 'countsChecksums', 'authorizationSpecific', 'executionAllowed', 'postVerify')) {
+                    if ($route[0].mutatedDataRecoveryOutcome.$property -ne $mutatedOutcome.$property) { Add-Failure "$($case.id) mutated data recovery outcome $property does not match actual prompt text" }
                 }
             }
             if ($route[0].PSObject.Properties.Name -contains 'mutatedForbiddenMatrixEntries') {
@@ -773,6 +835,24 @@ function Assert-SkillTriggerSuite {
     $incidentReference = Get-Content -LiteralPath $incidentReferencePath -Raw
     foreach ($check in @('timestamp', 'hash', 'snapshot', 'log reference', 'chain', 'owner', 'contain', 'preserve', 'classify', 'investigate', 'communicate', 'fix', 'verify', 'document', 'rollback', 'recovery', 'status', 'cadence', 'no blame', 'secret', 'PII')) {
         if ($incidentReference -notmatch "(?is)$check") { Add-Failure "incident response runbook is missing check: $check" }
+    }
+
+    $dataRecoverySkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-data-recovery/SKILL.md'
+    $dataRecoveryReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-data-recovery/references/recovery-runbook.md'
+    if (-not (Test-Path -LiteralPath $dataRecoverySkillPath -PathType Leaf)) { Add-Failure 'data recovery skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $dataRecoveryReferencePath -PathType Leaf)) { Add-Failure 'data recovery runbook is missing'; return }
+
+    $dataRecoverySkill = Get-Content -LiteralPath $dataRecoverySkillPath -Raw
+    if ($dataRecoverySkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-data-recovery\s*\r?\ndescription:\s*Use when') { Add-Failure 'data recovery front matter is invalid' }
+    $dataRecoveryFrontMatter = [regex]::Match($dataRecoverySkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($dataRecoveryFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'data recovery front matter must contain only name and description' }
+    if (($actualHeadings = @($dataRecoverySkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'data recovery must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('CRITICAL', 'copy-first', 'immutable snapshot', 'backup reference', 'source', 'target', 'read-only', 'dry-run', 'minimum scope', 'row', 'object', 'file', 'count', 'checksum', 'before', 'after', 'rollback-of-recovery', 'specific authorization', 'environment', 'action', 'scope', 'post-verify', 'planning-only', 'production')) {
+        if ($dataRecoverySkill -notmatch "(?is)$requirement") { Add-Failure "data recovery skill requirement is missing: $requirement" }
+    }
+    $dataRecoveryReference = Get-Content -LiteralPath $dataRecoveryReferencePath -Raw
+    foreach ($check in @('copy-first', 'immutable snapshot', 'backup reference', 'source', 'target', 'read-only', 'dry-run', 'minimum scope', 'row', 'object', 'file', 'count', 'checksum', 'before', 'after', 'rollback-of-recovery', 'specific authorization', 'environment', 'action', 'scope', 'post-verify', 'planning-only', 'production')) {
+        if ($dataRecoveryReference -notmatch "(?is)$check") { Add-Failure "data recovery runbook is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }

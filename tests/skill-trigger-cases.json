@@ -440,6 +440,28 @@
     "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. do not delete production data while preserving evidence."
   },
   {
+    "id": "data-recovery-cache-rollback",
+    "project": "FORJA",
+    "prompt": "Plan a FORJA cache rollback. Copy-first: immutable snapshot: cache-snap-42; backup reference: backups/cache-42. source: cache/version-42. target: cache/key/session-9. Read-only dry-run passed. Minimum scope: one cache key. Before count: 1; before checksum: sha256:abcd1234; after count: 1; after checksum: sha256:abcd1234. rollback-of-recovery: restore cache-snap-42. Post-verify: read key and compare checksum. Do not execute.",
+    "mutatedPrompt": "Plan a FORJA cache rollback. Copy-first: immutable snapshot: placeholder; backup reference: backups/cache-42. source: cache/version-42. target: cache/key/session-9. Read-only dry-run passed. Minimum scope: one cache key. Before count: 1; before checksum: sha256:abcd1234; after count: 1; after checksum: sha256:abcd1234. rollback-of-recovery: restore cache-snap-42. Post-verify: read key and compare checksum. Do not execute."
+  },
+  {
+    "id": "data-recovery-migration-recovery",
+    "project": "FORJA",
+    "prompt": "Plan FORJA recovery after a confirmed production migration incident affecting RLS tenant records. Copy-first: immutable snapshot: db-snap-42; backup reference: backups/db-42. source: migration/20260718. target: tenant-42 records. Read-only dry-run passed. Minimum scope: tenant-42 only. Before row count: 4; before checksum: sha256:abcd1234; after row count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: reapply db-snap-42. Post-verify: authenticated actor and other tenant checks. Do not execute."
+  },
+  {
+    "id": "data-recovery-production-restore-blocked",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. Post-verify: compare file count and checksum.",
+    "mutatedPrompt": "Restore FORJA production data now. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-destructive-intent-blocked",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data and delete all backups. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
     "id": "documentation-academic-anti-trigger",
     "project": "OTHER",
     "prompt": "Edit this academic essay for clarity and citations."
