@@ -25,7 +25,7 @@ Entregue três perspectivas independentes: architecture/manutenibilidade, securi
 
 ## Risk classification
 
-Classifique cada finding como Critical, High, Medium ou Low conforme [review-rubric.md](references/review-rubric.md). Critical e High são merge-blocking até serem corrigidos ou aceitos por explicit risk authority identificada; após correção ou aceite, marque como re-reviewed antes de remover o bloqueio. Medium dentro do escopo deve ser corrigido; Low exige justificativa para permanecer.
+Classifique cada finding como Critical, High, Medium ou Low conforme [review-rubric.md](references/review-rubric.md). Critical e High são merge-blocking até serem corrigidos e re-reviewed, ou aceitos por uma autoridade identificada no formato `explicit risk authority: <nome, cargo ou ID>` e re-reviewed; após correção ou aceite, marque como re-reviewed antes de remover o bloqueio. Medium dentro do escopo deve ser corrigido; Low exige justificativa para permanecer.
 
 ## Workflow
 

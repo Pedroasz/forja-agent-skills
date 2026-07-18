@@ -19,7 +19,7 @@ Faça as três passagens de forma independente. Não use a conclusão de uma par
 | Medium | Defeito relevante, mas contido; corrigir se estiver no escopo. |
 | Low | Melhoria limitada; pode permanecer somente com justificativa. |
 
-Critical e High só deixam de bloquear depois de correção ou Accepted risk por uma explicit risk authority identificada, seguida de re-review da evidência pertinente. “Aprovar rápido”, checks verdes ou ausência de tempo não são aceite de risco.
+Critical e High só deixam de bloquear após `Fixed` e re-review concluída, ou `Accepted risk` por autoridade identificada e re-review concluída. Para aceite, use `explicit risk authority: <nome, cargo organizacional ou ID>` com valor não vazio; `by explicit risk authority`, `explicit risk authority` sem valor ou alegação genérica não identificam autoridade. “Aprovar rápido”, checks verdes ou ausência de tempo não são aceite de risco.
 
 ## Registro por finding
 

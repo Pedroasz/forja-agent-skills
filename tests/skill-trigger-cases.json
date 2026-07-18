@@ -126,7 +126,19 @@
     "id": "independent-accepted-risk-without-authority",
     "project": "FORJA",
     "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk but no authority is identified.",
-    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk by explicit risk authority and re-review is complete."
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk; explicit risk authority: Maria Silva; re-review is complete."
+  },
+  {
+    "id": "independent-accepted-risk-generic-authority",
+    "project": "FORJA",
+    "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk by explicit risk authority and re-review is complete.",
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk; explicit risk authority: Security Director; re-review is complete."
+  },
+  {
+    "id": "independent-accepted-risk-authority-pending-rereview",
+    "project": "FORJA",
+    "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk; explicit risk authority: AUTH-42; re-review pending.",
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk; explicit risk authority: AUTH-42; re-review is complete."
   },
   {
     "id": "independent-review-other-project",

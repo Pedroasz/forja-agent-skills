@@ -259,7 +259,13 @@ function Get-IndependentReviewOutcome {
     $hasCriticalOrHighFinding = $text -match '\b(critical|high)\b.*\b(finding|issue)\b|\b(finding|issue)\b.*\b(critical|high)\b'
     $isReReviewed = $text -match '\bre-reviewed\b|\bre-review\b.*\b(complete|completed)\b'
     $fixedAndReReviewed = $text -match '\bfixed\b' -and $isReReviewed
-    $acceptedRiskWithAuthorityAndReReview = $text -match '\baccepted risk\b' -and $text -match '\bexplicit risk authority\b' -and $isReReviewed
+    $authorityMatch = [regex]::Match($Prompt, '(?i)\bexplicit risk authority\s*:\s*([^.;\r\n]+)')
+    $authorityValue = if ($authorityMatch.Success) { $authorityMatch.Groups[1].Value.Trim() } else { '' }
+    $hasNamedPerson = $authorityValue -match '\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b'
+    $hasOrganizationalRole = $authorityValue -match '(?i)\b(director|manager|officer|owner|lead|committee|board|ciso|cto|vp|head)\b'
+    $hasAuthorityId = $authorityValue -match '(?i)\b[A-Z]{2,}[-_]\d+\b'
+    $hasIdentifiedRiskAuthority = $authorityMatch.Success -and ($hasNamedPerson -or $hasOrganizationalRole -or $hasAuthorityId)
+    $acceptedRiskWithAuthorityAndReReview = $text -match '\baccepted risk\b' -and $hasIdentifiedRiskAuthority -and $isReReviewed
     $hasResolution = $fixedAndReReviewed -or $acceptedRiskWithAuthorityAndReReview
 
     return [PSCustomObject]@{
