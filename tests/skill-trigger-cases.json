@@ -324,6 +324,17 @@
     "mutatedPrompt": "Write a FORJA ADR. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the local artifact."
   },
   {
+    "id": "documentation-drive-update-backup",
+    "project": "FORJA",
+    "prompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Pre-update metadata read. Backup file ID: backup-42. Backup name: report.backup-2026-07-18-1200.md. Backup size: 1024 bytes. Backup modified: 2026-07-18T11:59:00Z. Backup confirmation: reread. Preserve original file ID: file-42.",
+    "mutatedPrompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Pre-update metadata read. Preserve original file ID: file-42."
+  },
+  {
+    "id": "documentation-drive-new-file-backup-not-applicable",
+    "project": "FORJA",
+    "prompt": "Upload a new FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Backup: NOT_APPLICABLE. Reason: new-file upload has no existing remote file."
+  },
+  {
     "id": "documentation-id-not-routing",
     "project": "FORJA",
     "prompt": "FORJA folder ID: folder-42; file ID: file-42."

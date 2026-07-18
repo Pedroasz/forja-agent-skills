@@ -220,13 +220,16 @@ function Get-SkillSelection {
     $hasPerformanceIntent = $text -match '\b(measure|audit|investigate|profile|improve|reduce|optimize|make|load|render)\b'
     $isPerformanceAudit = $hasPerformanceMetric -and $hasPerformanceIntent
     $isTestStrategy = $text -match '\b(test strategy|test matrix|testing strategy|test plan)\b|estratégia de testes|estrategia de testes|matriz de testes|plano de testes|escopo de validação|escopo de validacao'
+    $isDocumentation = $text -match '\b(documentation|readme|adr|docs-only|runbook)\b|\bdocumenta|\bdocs?\b|\bevidence record\b|\brelease report\b|\b(update|write|create)\b.{0,80}\bchangelog\b|\bchangelog\b.{0,80}\b(update|write|entry)\b'
+    $documentationSelection = @()
+    if ($isDocumentation) { $documentationSelection = @('forja-documentation') }
     if ($isMigration -and $isBoundary) {
         $selection = @('forja-supabase-migration', 'forja-auth-storage-safety')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return $selection
+        return @($documentationSelection + $selection)
     }
     if ($isMigration) {
         $selection = @('forja-supabase-migration')
@@ -234,7 +237,7 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return $selection
+        return @($documentationSelection + $selection)
     }
     if ($isBoundary) {
         $selection = @('forja-auth-storage-safety')
@@ -242,10 +245,10 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return $selection
+        return @($documentationSelection + $selection)
     }
     if ($isRelease) {
-        $selection = @('forja-release-pipeline')
+        $selection = @($documentationSelection + @('forja-release-pipeline'))
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
@@ -255,9 +258,10 @@ function Get-SkillSelection {
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         return $selection
     }
-    if ($text -match '\b(documentation|readme|adr|docs-only|report|runbook|changelog|evidence)\b') {
-        if ($isTestStrategy) { return @('forja-test-strategy') }
-        return @('forja-documentation')
+    if ($isDocumentation) {
+        $selection = @('forja-documentation')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
+        return $selection
     }
     if ($isPerformanceAudit) {
         $selection = @('forja-performance-audit')
@@ -679,11 +683,11 @@ function Assert-SkillTriggerSuite {
     $documentationFrontMatter = [regex]::Match($documentationSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
     if ((@($documentationFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'documentation front matter must contain only name and description' }
     if (($actualHeadings = @($documentationSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'documentation must contain exactly the required twelve H2 sections' }
-    foreach ($requirement in @('LOW', 'executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'unsupported conclusions', 'secret', 'credential', 'PII', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'post-upload', 'reread', 'deletion', 'overwrite')) {
+    foreach ($requirement in @('LOW', 'executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'unsupported conclusions', 'secret', 'credential', 'PII', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'post-upload', 'reread', 'deletion', 'overwrite', 'backup-before-update', 'pre-update', 'backup file ID', 'backup name', 'backup size', 'backup modified', 'backup confirmation', 'original file ID', 'never delete history', 'NOT_APPLICABLE')) {
         if ($documentationSkill -notmatch "(?is)$requirement") { Add-Failure "documentation skill requirement is missing: $requirement" }
     }
     $documentationReference = Get-Content -LiteralPath $documentationReferencePath -Raw
-    foreach ($check in @('executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'reread', 'secret', 'credential', 'PII')) {
+    foreach ($check in @('executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'reread', 'secret', 'credential', 'PII', 'backup-before-update', 'pre-update', 'backup file ID', 'backup name', 'backup size', 'backup modified', 'backup confirmation', 'original file ID', 'never delete history', 'NOT_APPLICABLE')) {
         if ($documentationReference -notmatch "(?is)$check") { Add-Failure "documentation evidence schema is missing check: $check" }
     }
 
@@ -706,7 +710,10 @@ function Get-DocumentationEvidenceOutcome {
     $isDrive = $text -match '\bdrive\b'
     if ($isDrive) {
         $hasDriveMetadata = $text -match 'folder id:\s*[a-z0-9_-]+' -and $text -match 'file id:\s*[a-z0-9_-]+' -and $text -match 'size:' -and $text -match 'modified:' -and $text -match '(post-upload reread|reread after upload)'
-        return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasDriveMetadata); confirmationScope = 'DRIVE' }
+        $isDriveUpdate = $text -match '\b(update|overwrite|existing file)\b'
+        $hasBackupEvidence = $text -match 'pre-update (metadata|metadata read|read)' -and $text -match 'backup file id:\s*[a-z0-9_-]+' -and $text -match 'backup name:' -and $text -match 'backup size:' -and $text -match 'backup modified:' -and $text -match 'backup confirmation:' -and $text -match 'preserve original file id:\s*[a-z0-9_-]+'
+        $backupSatisfied = (-not $isDriveUpdate) -or $hasBackupEvidence
+        return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasDriveMetadata -and $backupSatisfied); confirmationScope = 'DRIVE' }
     }
     return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasCommitHash); confirmationScope = 'LOCAL_ARTIFACT' }
 }

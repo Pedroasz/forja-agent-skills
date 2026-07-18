@@ -31,19 +31,19 @@ Documentação isolada é **LOW**. Não reduza MODERATE, HIGH ou CRITICAL porque
 
 ## Workflow
 
-Leia [evidence-schema.md](references/evidence-schema.md). Primeiro classifique cada fato pelo estado; depois associe a fonte exata e a verificação. Para Drive, só registre upload, overwrite ou deletion quando houver evidência do conector, incluindo folder ID, file ID e post-upload reread de metadata ou conteúdo.
+Leia [evidence-schema.md](references/evidence-schema.md). Primeiro classifique cada fato pelo estado; depois associe a fonte exata e a verificação. Para Drive, só registre upload, overwrite ou deletion quando houver evidência do conector, incluindo folder ID, file ID e post-upload reread de metadata ou conteúdo. Em arquivo existente, execute backup-before-update: leia pre-update metadata/conteúdo, preserve o remoto como cópia suportada pelo conector ou backup com timestamp, e confirme o backup antes de atualizar.
 
 ## Required checks
 
-Valide que cada resultado executado ou observado possui fonte e comando/check; inclua timestamp quando o tempo altera o significado. Cite commit/hash para Git, URL para GitHub quando disponível, e Drive ID/size/modified metadata para Drive. Redija segredos: nunca inclua secret, credential, token, chave, PII ou dados pessoais desnecessários.
+Valide que cada resultado executado ou observado possui fonte e comando/check; inclua timestamp quando o tempo altera o significado. Cite commit/hash para Git, URL para GitHub quando disponível, e Drive ID/size/modified metadata para Drive. Para update/overwrite, exija pre-update leitura e backup file ID, backup name, backup size, backup modified e backup confirmation antes da escrita; preserve original file ID ao atualizar com segurança e never delete history. Em upload de novo arquivo, registre backup como NOT_APPLICABLE com a razão. Redija segredos: nunca inclua secret, credential, token, chave, PII ou dados pessoais desnecessários.
 
 ## Stop conditions
 
-Pare a conclusão quando faltar fonte, comando/check, timestamp relevante, hash/URL/ID ou metadata aplicável. Não declare sucesso de upload, sincronização, overwrite, deletion, validação remota ou produção sem evidência observada. Não exponha segredos, credentials ou PII.
+Pare a conclusão quando faltar fonte, comando/check, timestamp relevante, hash/URL/ID ou metadata aplicável. Pare antes de update ou overwrite se o backup-before-update não estiver confirmado. Não declare sucesso de upload, sincronização, overwrite, deletion, validação remota ou produção sem evidência observada. Não exponha segredos, credentials ou PII.
 
 ## Failure recovery
 
-Troque a afirmação não comprovada por `planned` ou `not-run`, descreva a lacuna e a próxima verificação necessária. Preserve evidência já observada; não invente hash, URL, Drive ID, size, modified metadata ou confirmação de reread.
+Troque a afirmação não comprovada por `planned` ou `not-run`, descreva a lacuna e a próxima verificação necessária. Para update, restaure a etapa de pre-update e crie/confirme o backup antes de qualquer nova escrita. Preserve evidência já observada; não invente hash, URL, Drive ID, size, modified metadata ou confirmação de reread.
 
 ## Handoff or next skills
 
@@ -51,4 +51,4 @@ Encaminhe estratégia de validação para `forja-test-strategy`, gates e proveni
 
 ## Completion evidence
 
-Entregue o artefato com os quatro estados, fonte exata e limites explícitos. Para cada confirmação, identifique se é local artifact, GitHub, Drive ou production. Um relatório do Drive só está completo após o post-upload reread confirmar folder ID, file ID, size e modified metadata; sem essa evidência, use `not-run` ou pendente.
+Entregue o artefato com os quatro estados, fonte exata e limites explícitos. Para cada confirmação, identifique se é local artifact, GitHub, Drive ou production. Um relatório do Drive só está completo após o post-upload reread confirmar folder ID, file ID, size e modified metadata; em update/overwrite, inclua também backup file ID, backup name, backup size, backup modified, backup confirmation e a preservação do original file ID. Sem essa evidência, use `not-run` ou pendente.

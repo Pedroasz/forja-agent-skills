@@ -15,7 +15,8 @@
 | --- | --- | --- |
 | local artifact | caminho/artefato, evidence source, command ou check, timestamp quando relevante, commit/hash quando aplicável | GitHub, Drive ou production. |
 | GitHub | URL, evidence source, command/check, commit/hash quando aplicável e timestamp quando relevante | deploy ou produção. |
-| Drive | folder ID, file ID, size, modified metadata, evidence source, post-upload reread de metadata ou conteúdo | upload, overwrite ou deletion sem a releitura. |
+| Drive: novo arquivo | folder ID, file ID, size, modified metadata, evidence source, post-upload reread de metadata ou conteúdo; backup `NOT_APPLICABLE` com reason | upload sem a releitura. |
+| Drive: update/overwrite | backup-before-update: pre-update metadata/conteúdo, backup file ID, backup name com timestamp, backup size, backup modified, backup confirmation, original file ID preservado, e post-upload reread | update/overwrite até o backup confirmado; never delete history. |
 | production | ambiente, URL quando aplicável, evidence source, check observado, timestamp e autoridade aplicável | mutação, deploy ou saúde total fora do check executado. |
 
 ## Forma mínima de registro
@@ -32,6 +33,12 @@ size: ...
 modified metadata: ...
 limite: confirmação restrita ao conteúdo/metadata relido
 ```
+
+## Atualização de arquivo existente no Drive
+
+Antes de update ou overwrite, leia o arquivo existente e seus metadados (`pre-update`). Preserve o conteúdo remoto como backup timestampado ou cópia suportada pelo conector. Registre `backup file ID`, `backup name`, `backup size`, `backup modified` e `backup confirmation` por releitura de metadata ou conteúdo. Somente depois atualize o arquivo, preservando o `original file ID` quando isso for seguro. Nunca delete history.
+
+Para upload de um arquivo novo, use `backup: NOT_APPLICABLE` e declare a reason: não havia arquivo remoto existente para preservar.
 
 ## Redação segura
 
