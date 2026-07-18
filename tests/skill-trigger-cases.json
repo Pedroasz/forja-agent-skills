@@ -15,5 +15,22 @@
     "id": "docs-only-edit",
     "project": "FORJA",
     "prompt": "Update FORJA documentation with the validated local setup instructions."
+  },
+  {
+    "id": "login-bug",
+    "project": "FORJA",
+    "prompt": "Fix the FORJA login bug that lets an unauthenticated visitor load a workspace.",
+    "mutatedPrompt": "Change the profile copy shown after a FORJA login."
+  },
+  {
+    "id": "profile-copy",
+    "project": "FORJA",
+    "prompt": "Change the profile copy shown after a FORJA login."
+  },
+  {
+    "id": "hypothetical-rls-migration",
+    "project": "FORJA",
+    "prompt": "Hypothetically, how would a new FORJA RLS migration isolate workspace records by tenant? Do not execute it.",
+    "mutatedPrompt": "Explain the FORJA RLS concept in documentation without a migration, policy, workspace, or tenant change."
   }
 ]

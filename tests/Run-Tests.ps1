@@ -201,12 +201,18 @@ function Assert-RoutingSuite {
     if ($failures.Count -eq 0) { Write-Output 'PASS: routing suite' }
 }
 
-function Get-FrontendSkillSelection {
+function Get-SkillSelection {
     param([string]$Project, [string]$Prompt)
 
     $text = $Prompt.ToLowerInvariant()
     if ($Project -ne 'FORJA' -or $text -match '\b(documentation|readme|adr|docs-only)\b') {
         return @()
+    }
+    if ($text -match '\b(profile copy|profile text|copy shown)\b') {
+        return @()
+    }
+    if ($text -match '\b(authentication|authenticated|unauthenticated|login|session|workspace|tenant|storage|rls|migration|policy)\b') {
+        return @('forja-auth-storage-safety')
     }
     if ($text -match '\b(button|navigation|frontend|ui|form|html|css|javascript)\b') {
         return @('forja-safe-frontend-change')
@@ -222,13 +228,14 @@ function Assert-SkillTriggerSuite {
     foreach ($case in $cases) {
         $route = @($expected | Where-Object { $_.id -eq $case.id })
         if ($route.Count -ne 1) { Add-Failure "$($case.id) must map to exactly one expected skill selection"; continue }
-        $actual = Get-FrontendSkillSelection -Project $case.project -Prompt $case.prompt
+        $actual = Get-SkillSelection -Project $case.project -Prompt $case.prompt
         if ((@($route[0].selectedSkills) -join '|') -ne ($actual -join '|')) { Add-Failure "$($case.id) skill selection does not match actual prompt text" }
 
         if ($null -ne $case.mutatedPrompt) {
-            $mutated = Get-FrontendSkillSelection -Project $case.project -Prompt $case.mutatedPrompt
+            $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) { Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence" }
         }
+        if ($case.id -eq 'hypothetical-rls-migration' -and $route[0].planningOnly -ne $true) { Add-Failure 'hypothetical RLS migration must remain planning-only' }
     }
 
     $skillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-safe-frontend-change/SKILL.md'
@@ -255,6 +262,27 @@ function Assert-SkillTriggerSuite {
     $reference = Get-Content -LiteralPath $referencePath -Raw
     foreach ($check in @('DOM IDs', 'event handlers', 'escaping', 'XSS', 'blank screen', 'desktop', 'mobile', 'navigation')) {
         if ($reference -notmatch "(?i)$check") { Add-Failure "frontend safety reference is missing check: $check" }
+    }
+
+    $authSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-auth-storage-safety/SKILL.md'
+    $authReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-auth-storage-safety/references/auth-storage-boundaries.md'
+    if (-not (Test-Path -LiteralPath $authSkillPath -PathType Leaf)) { Add-Failure 'auth and storage safety skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $authReferencePath -PathType Leaf)) { Add-Failure 'auth and storage boundaries reference is missing'; return }
+
+    $authSkill = Get-Content -LiteralPath $authSkillPath -Raw
+    if ($authSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-auth-storage-safety\s*\r?\ndescription:\s*Use when') { Add-Failure 'auth and storage safety front matter is invalid' }
+    $authFrontMatter = [regex]::Match($authSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($authFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'auth and storage safety front matter must contain only name and description' }
+    if (($actualHeadings = @($authSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'auth and storage safety must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('HIGH', 'identity', 'authentication', 'session', 'storage', 'workspace', 'tenant', 'authenticated actor', 'cross-workspace', 'real data', 'explicit approval', 'planning-only')) {
+        if ($authSkill -notmatch "(?is)$requirement") { Add-Failure "auth and storage safety requirement is missing: $requirement" }
+    }
+    foreach ($handoff in @('forja-supabase-migration', 'forja-test-strategy')) {
+        if ($authSkill -notmatch "(?i)$handoff") { Add-Failure "auth and storage safety handoff is missing: $handoff" }
+    }
+    $authReference = Get-Content -LiteralPath $authReferencePath -Raw
+    foreach ($check in @('authenticated actor', 'tenant isolation', 'cross-workspace', 'storage', 'real data', 'explicit approval')) {
+        if ($authReference -notmatch "(?is)$check") { Add-Failure "auth and storage boundaries reference is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
