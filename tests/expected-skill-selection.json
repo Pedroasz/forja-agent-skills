@@ -4,5 +4,6 @@
   { "id": "docs-only-edit", "selectedSkills": [] },
   { "id": "login-bug", "selectedSkills": ["forja-auth-storage-safety"] },
   { "id": "profile-copy", "selectedSkills": [] },
+  { "id": "auth-tenant-profile-mixed", "selectedSkills": ["forja-auth-storage-safety"] },
   { "id": "hypothetical-rls-migration", "selectedSkills": ["forja-auth-storage-safety"], "planningOnly": true }
 ]

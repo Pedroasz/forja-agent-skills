@@ -28,9 +28,15 @@
     "prompt": "Change the profile copy shown after a FORJA login."
   },
   {
+    "id": "auth-tenant-profile-mixed",
+    "project": "FORJA",
+    "prompt": "Fix FORJA authentication for a tenant and update the profile copy.",
+    "mutatedPrompt": "Update the FORJA profile copy only."
+  },
+  {
     "id": "hypothetical-rls-migration",
     "project": "FORJA",
     "prompt": "Hypothetically, how would a new FORJA RLS migration isolate workspace records by tenant? Do not execute it.",
-    "mutatedPrompt": "Explain the FORJA RLS concept in documentation without a migration, policy, workspace, or tenant change."
+    "mutatedPrompt": "Explain a generic access-control concept in documentation only."
   }
 ]

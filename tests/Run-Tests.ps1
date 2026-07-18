@@ -205,14 +205,14 @@ function Get-SkillSelection {
     param([string]$Project, [string]$Prompt)
 
     $text = $Prompt.ToLowerInvariant()
-    if ($Project -ne 'FORJA' -or $text -match '\b(documentation|readme|adr|docs-only)\b') {
+    if ($Project -ne 'FORJA') {
         return @()
     }
-    if ($text -match '\b(profile copy|profile text|copy shown)\b') {
-        return @()
-    }
-    if ($text -match '\b(authentication|authenticated|unauthenticated|login|session|workspace|tenant|storage|rls|migration|policy)\b') {
+    if ($text -match '\b(authentication|authenticated|unauthenticated|session|workspace|tenant|storage|rls|migration|policy)\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b') {
         return @('forja-auth-storage-safety')
+    }
+    if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
+        return @()
     }
     if ($text -match '\b(button|navigation|frontend|ui|form|html|css|javascript)\b') {
         return @('forja-safe-frontend-change')
