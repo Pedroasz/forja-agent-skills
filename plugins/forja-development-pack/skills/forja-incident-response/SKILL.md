@@ -19,15 +19,15 @@ Não use para bug local comum, teste isolado ou alteração de desenvolvimento s
 
 ## Required inputs
 
-Receba escopo e impacto observados, ambiente, início conhecido ou desconhecido, timestamp, hash ou snapshot disponível, log reference, cadeia de custódia (chain) e owner. Receba também a autoridade de incidente, limites de atuação, contatos de status e evidência de rollback/recovery disponível. Redija secret, credential e PII.
+Receba escopo e impacto observados, ambiente, início conhecido ou desconhecido, timestamp ISO-8601 válido, hash ou snapshot não-placeholder, log reference não-placeholder, cadeia de custódia (chain) com trilha de responsáveis e owner identificado. Receba também explicit incident authority estruturada (nome, papel ou ID), limites de atuação, contatos de status e evidência de rollback/recovery disponível. Rejeite `unknown`, `now`, `yes` e valores genéricos; redija secret, credential e PII.
 
 ## Expected outputs
 
-Entregue `incidentState`, `risk`, `sequence`, `executionAllowed` e `evidencePreserved`, distinguindo confirmado, hypothetical e não incidente. Para caso confirmado, `risk` é CRITICAL e a sequence é exatamente `contain → preserve → classify → investigate → communicate → fix → verify → document`; informe fatos, lacunas, owner e próximo ponto de decisão, sem inventar IDs ou certeza.
+Entregue `incidentState`, `risk`, `sequence`, `executionAllowed` e `evidencePreserved`, distinguindo confirmado, hypothetical e não incidente. `evidencePreserved` só é verdadeiro com todos os pré-requisitos validados independentemente. Para caso confirmado, `risk` é CRITICAL e a sequence é exatamente `contain → preserve → classify → investigate → communicate → fix → verify → document`; informe fatos, lacunas, owner e próximo ponto de decisão, sem inventar IDs ou certeza.
 
 ## Risk classification
 
-Incidente confirmado, outage, data loss ou production error é **CRITICAL**; o maior risco prevalece. A `reversible containment` só é permitida dentro da autoridade explícita. Não execute production mutation, correção destrutiva, rollback ou recovery sem explicit incident authority, plano de reversão e escopo aprovado.
+Incidente confirmado, outage, data loss ou production error é **CRITICAL**; o maior risco prevalece. `executionAllowed` só pode ser verdadeiro para `authorized reversible containment`, com evidência integral preservada e explicit incident authority estruturada. Cleanup, restart, destructive fix e production mutation permanecem proibidos por este gate, mesmo quando ele estiver verdadeiro; exigem autorização específica separada e plano de reversão. Não execute rollback ou recovery sem explicit incident authority, plano de reversão e escopo aprovado.
 
 ## Workflow
 
@@ -35,7 +35,7 @@ Leia [incident-runbook.md](references/incident-runbook.md) e siga, nesta ordem: 
 
 ## Required checks
 
-Antes de qualquer correção, confirme preservação de timestamp, hash ou snapshot, log reference, chain e owner. Faça no log deletion, cleanup, restart, destructive fix ou production mutation antes da preservação e da explicit incident authority. Verifique que a contenção é reversível, que o status não promete além da evidência, e que toda correção aprovada possui rollback/recovery handoff e critério de verify.
+Antes de qualquer correção, confirme timestamp ISO-8601, hash ou snapshot não-placeholder, log reference não-placeholder, chain com trilha e owner identificado. Faça no log deletion, cleanup, restart, destructive fix ou production mutation antes da preservação e da explicit incident authority. Verifique que a contenção é reversível, que `executionAllowed` depende de todos esses checks e de autoridade estruturada, que o status não promete além da evidência, e que toda correção aprovada possui rollback/recovery handoff e critério de verify.
 
 ## Stop conditions
 

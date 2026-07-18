@@ -350,13 +350,30 @@ function Get-IncidentResponseOutcome {
     $hasIncidentSignal = $text -match '\b(incident|incidente|outage|data loss|perda de dados|production error|erro de produ[cç][aã]o)\b'
     $hasProductionSignal = $text -match '\b(production|produ[cç][aã]o|prod)\b'
     $isConfirmed = -not $isHypothetical -and $hasIncidentSignal -and ($hasProductionSignal -or $text -match '\b(outage|data loss|perda de dados)\b')
-    $hasEvidence = $text -match '\b(timestamp|timestamps|hash|snapshot|log reference|log references|chain|owner)\b'
-    $hasAuthority = $text -match '\b(explicit incident authority|incident authority)\b'
+    $isoTimestamp = '20\d{2}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}z'
+    $hasTimestamp = $text -match "(?im)\btimestamp\s*:\s*$isoTimestamp(?:\.|\s|$)"
+    $placeholder = '(?:unknown|n/?a|now|yes|placeholder|tbd|none)'
+    $hasHash = $text -match "(?im)\bhash\s*:\s*(?!$placeholder(?:\.|\s|$))[a-z0-9][a-z0-9._:/-]{3,}"
+    $hasSnapshot = $text -match "(?im)\bsnapshot\s*:\s*(?!$placeholder(?:\.|\s|$))[a-z0-9][a-z0-9._:/-]{3,}"
+    $hasArtifactReference = $hasHash -or $hasSnapshot
+    $hasLogReference = $text -match "(?im)\blog reference\s*:\s*(?!$placeholder(?:\.|\s|$))[a-z0-9][a-z0-9._:/-]{3,}"
+    $chainMatch = [regex]::Match($Prompt, '(?im)\bchain(?: of custody)?\s*:\s*([^\r\n.]+)')
+    $chainValue = if ($chainMatch.Success) { $chainMatch.Groups[1].Value.Trim() } else { '' }
+    $hasChainTrail = $chainValue -notmatch "(?i)^$placeholder$" -and $chainValue -match '(?i)\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s*->\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b'
+    $ownerMatch = [regex]::Match($Prompt, '(?im)\bowner\s*:\s*([^\r\n.]+)')
+    $ownerValue = if ($ownerMatch.Success) { $ownerMatch.Groups[1].Value.Trim() } else { '' }
+    $hasIdentifiedOwner = $ownerValue -notmatch "(?i)^$placeholder$" -and $ownerValue -match '(?i)\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+|director|manager|officer|lead|commander|[A-Z]{2,}[-_]\d+)\b'
+    $authorityMatch = [regex]::Match($Prompt, '(?im)\bexplicit incident authority\s*:\s*([^\r\n.]+)')
+    $authorityValue = if ($authorityMatch.Success) { $authorityMatch.Groups[1].Value.Trim() } else { '' }
+    $hasStructuredAuthority = $authorityValue -notmatch "(?i)^$placeholder$" -and $authorityValue -match '(?i)\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+|director|manager|officer|owner|lead|commander|[A-Z]{2,}[-_]\d+)\b'
+    $hasEvidence = $hasTimestamp -and $hasArtifactReference -and $hasLogReference -and $hasChainTrail -and $hasIdentifiedOwner
+    $isAuthorizedReversibleContainment = $text -match '\bauthorized reversible containment\b'
+    $hasUnsafeAction = $text -match '\b(log deletion|cleanup|restart|destructive fix|production mutation)\b'
     if ($isHypothetical) {
         return [PSCustomObject]@{ incidentState = 'HYPOTHETICAL'; risk = 'CRITICAL'; sequence = $sequence; executionAllowed = $false; evidencePreserved = $false }
     }
     if ($isConfirmed) {
-        return [PSCustomObject]@{ incidentState = 'CONFIRMED'; risk = 'CRITICAL'; sequence = $sequence; executionAllowed = $hasAuthority; evidencePreserved = $hasEvidence }
+        return [PSCustomObject]@{ incidentState = 'CONFIRMED'; risk = 'CRITICAL'; sequence = $sequence; executionAllowed = ($hasEvidence -and $hasStructuredAuthority -and $isAuthorizedReversibleContainment -and -not $hasUnsafeAction); evidencePreserved = $hasEvidence }
     }
     return [PSCustomObject]@{ incidentState = 'NOT_INCIDENT'; risk = 'NONE'; sequence = ''; executionAllowed = $false; evidencePreserved = $false }
 }
