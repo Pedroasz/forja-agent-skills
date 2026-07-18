@@ -11,7 +11,7 @@ Defina a menor matriz suficiente, baseada em evidências e no risco já roteado.
 
 ## Trigger conditions
 
-Use quando o pedido FORJA solicitar explicitamente `test strategy`, `test matrix`, `estratégia de testes`, `matriz de testes`, `plano de testes` ou `escopo de validação`. Cubra documentação, frontend, autenticação, RLS, tenant, Storage e migration apenas conforme os sinais reais do pedido.
+Use quando o pedido FORJA solicitar explicitamente `test strategy`, `test matrix`, `estratégia de testes`, `matriz de testes`, `plano de testes` ou `escopo de validação`, mesmo sem termos de superfície em inglês. Cubra documentação, frontend, autenticação, RLS, tenant, Storage e migration apenas conforme os sinais reais do pedido; mantenha as outras skills aplicáveis na composição.
 
 ## Do not trigger when
 

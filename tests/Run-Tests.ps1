@@ -250,27 +250,39 @@ function Get-SkillSelection {
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
-    if ($isIndependentReview) { return @('forja-independent-review') }
+    if ($isIndependentReview) {
+        $selection = @('forja-independent-review')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
+        return $selection
+    }
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         if ($isTestStrategy) { return @('forja-test-strategy') }
         return @()
     }
-    if ($isPerformanceAudit) { return @('forja-performance-audit') }
+    if ($isPerformanceAudit) {
+        $selection = @('forja-performance-audit')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
+        return $selection
+    }
     $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|botão|botao|form|screen|tela|viewport)\b'
     $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
     $isFullRedesign = $text -match '\bfull redesign\b'
     if ($isBackendOrApiWithoutUi -or $isFullRedesign) {
+        if ($isTestStrategy) { return @('forja-test-strategy') }
         return @()
     }
     $isScopedMobileOrFormAccessibility = $text -match '\b(mobile|form)\b.*\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b|\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b.*\b(mobile|form)\b'
     if ($isScopedMobileOrFormAccessibility -or $text -match '\b(contrast|keyboard|focus order|focus return|focus trap|modal dialog|accessibility|semantic html|touch target|reduced motion)\b') {
-        return @('forja-ux-accessibility')
+        $selection = @('forja-ux-accessibility')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
+        return $selection
     }
     if ($text -match '\b(button|botão|botao|navigation|navegação|navegacao|frontend|ui|form|html|css|javascript)\b') {
         $selection = @('forja-safe-frontend-change')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         return $selection
     }
+    if ($isTestStrategy) { return @('forja-test-strategy') }
     return @()
 }
 
@@ -465,6 +477,12 @@ function Assert-SkillTriggerSuite {
                     foreach ($property in @('risk', 'matrix', 'productionGate')) {
                         if ($route[0].mutatedTestStrategyOutcome.$property -ne $mutatedTestStrategyOutcome.$property) { Add-Failure "$($case.id) mutated test strategy outcome $property does not match actual prompt text" }
                     }
+                }
+            }
+            if ($route[0].PSObject.Properties.Name -contains 'mutatedForbiddenMatrixEntries') {
+                $mutatedTestStrategyOutcome = Get-TestStrategyOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                foreach ($entry in @($route[0].mutatedForbiddenMatrixEntries)) {
+                    if (($mutatedTestStrategyOutcome.matrix -split '\|') -contains $entry) { Add-Failure "$($case.id) mutated matrix over-tests $entry" }
                 }
             }
         }
