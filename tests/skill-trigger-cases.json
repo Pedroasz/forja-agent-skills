@@ -212,7 +212,25 @@
     "id": "performance-vague-make-faster",
     "project": "FORJA",
     "prompt": "Make the FORJA dashboard faster.",
-    "mutatedPrompt": "Update the FORJA dashboard documentation."
+    "mutatedPrompt": "Measure FORJA dashboard render latency before changing it."
+  },
+  {
+    "id": "performance-database-latency",
+    "project": "FORJA",
+    "prompt": "Audit FORJA database latency before improving the query path.",
+    "mutatedPrompt": "Update the FORJA database performance review documentation."
+  },
+  {
+    "id": "performance-storage-request-latency",
+    "project": "FORJA",
+    "prompt": "Measure FORJA Storage request latency before changing it.",
+    "mutatedPrompt": "Update the FORJA Storage request performance documentation."
+  },
+  {
+    "id": "performance-rls-database-latency",
+    "project": "FORJA",
+    "prompt": "Measure FORJA RLS database latency before changing the policy.",
+    "mutatedPrompt": "Update the FORJA RLS database performance documentation."
   },
   {
     "id": "performance-review-docs-only",

@@ -211,25 +211,31 @@ function Get-SkillSelection {
     $isExplicitReviewArtifact = $text -match '\b(review|audit)\b' -and $text -match '\b(pr|pull request|diff)\b'
     $isGenericChangeReviewBeforeMerge = $text -match '\b(review|audit)\b' -and $text -match '\bbefore merge\b' -and $text -match '\b(code|documentation|change)\b'
     $isIndependentReview = $isExplicitReviewArtifact -or $isGenericChangeReviewBeforeMerge
-    $isMigration = $text -match '\b(migration|schema|database|table|index)\b'
-    $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|storage|rls|policy)\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
+    $isMigration = $text -match '\b(migration|schema|table|index|rls|policy)\b'
+    $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|rls|policy|permission)\b' -or $text -match '\bstorage\b.*\b(access|upload|bucket|object|permission)\b|\b(access|upload|bucket|object|permission)\b.*\bstorage\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
     $isPackageRelease = $text -match '\b(development pack|skills package)\b' -and $text -match '\b(release|version|changelog|tag)\b'
     $isSaasRelease = $text -match '\bsaas\b' -and $text -match '\b(release|deploy|production)\b'
     $isRelease = $isPackageRelease -or $isSaasRelease
+    $hasPerformanceMetric = $text -match '\b(html|download|size|bytes?|weight|request|call|latency|slow|slowness|faster|render|rendering|paint|performance)\b'
+    $hasPerformanceIntent = $text -match '\b(measure|audit|investigate|profile|improve|reduce|optimize|make|load|render)\b'
+    $isPerformanceAudit = $hasPerformanceMetric -and $hasPerformanceIntent
     if ($isMigration -and $isBoundary) {
         $selection = @('forja-supabase-migration', 'forja-auth-storage-safety')
+        if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
     if ($isMigration) {
         $selection = @('forja-supabase-migration')
+        if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
     if ($isBoundary) {
         $selection = @('forja-auth-storage-safety')
+        if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
@@ -243,9 +249,6 @@ function Get-SkillSelection {
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         return @()
     }
-    $isPerformanceAudit = $text -match '\b(html|download)\b.*\b(size|bytes?|weight)\b|\b(size|bytes?|weight)\b.*\b(html|download)\b' -or
-        $text -match '\b(repeated|duplicate|network)\b.*\b(requests?|calls?|latency)\b|\b(requests?|calls?|latency)\b.*\b(repeated|duplicate|network)\b' -or
-        $text -match '\b(render|rendering|paint|latency|slow|faster|performance)\b'
     if ($isPerformanceAudit) { return @('forja-performance-audit') }
     $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|form|screen|viewport)\b'
     $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
@@ -268,13 +271,14 @@ function Get-PerformanceAuditOutcome {
 
     if ((Get-SkillSelection -Project $Project -Prompt $Prompt) -notcontains 'forja-performance-audit') { return $null }
     $text = $Prompt.ToLowerInvariant()
-    $isVague = $text -match '\b(make|render|load)\b.*\b(faster|fast|slow)\b|\bperformance\b' -and
-        $text -notmatch '\b(html|download|size|bytes?|weight|request|call|latency|render|paint|storage|database|db)\b'
+    $hasSpecificMetric = $text -match '\b(html|download|size|bytes?|weight|request|call|latency|render|rendering|paint|storage|database|db)\b'
+    $isVague = -not $hasSpecificMetric
     return [PSCustomObject]@{
         measurementRequired = $true
         baselineRequired = $true
         noClaimWithoutData = $true
         scopeRefinementRequired = $isVague
+        metricSpecificity = if ($hasSpecificMetric) { 'SPECIFIC' } else { 'UNSPECIFIED' }
     }
 }
 
@@ -343,7 +347,7 @@ function Assert-SkillTriggerSuite {
             $outcome = Get-PerformanceAuditOutcome -Project $case.project -Prompt $case.prompt
             if ($null -eq $outcome) { Add-Failure "$($case.id) performance measurement gate is missing" }
             else {
-                foreach ($property in @('measurementRequired', 'baselineRequired', 'noClaimWithoutData', 'scopeRefinementRequired')) {
+                foreach ($property in @('measurementRequired', 'baselineRequired', 'noClaimWithoutData', 'scopeRefinementRequired', 'metricSpecificity')) {
                     if ($route[0].performanceOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) performance outcome $property does not match actual prompt text" }
                 }
             }
@@ -364,7 +368,7 @@ function Assert-SkillTriggerSuite {
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) {
-                if ($null -ne $route[0].mutatedReviewOutcome) {
+                if ($null -ne $route[0].mutatedReviewOutcome -or ($route[0].PSObject.Properties.Name -contains 'mutatedPerformanceOutcome')) {
                     # The review outcome assertion below proves the meaningful prompt-derived change.
                 }
                 elseif ($null -eq $route[0].releaseKind) {
@@ -382,6 +386,20 @@ function Assert-SkillTriggerSuite {
                 $mutatedOutcome = Get-IndependentReviewOutcome -Project $case.project -Prompt $case.mutatedPrompt
                 foreach ($property in @('mergeBlocked')) {
                     if ($route[0].mutatedReviewOutcome.$property -ne $mutatedOutcome.$property) { Add-Failure "$($case.id) mutated review outcome $property does not match actual prompt text" }
+                }
+            }
+            if ($route[0].PSObject.Properties.Name -contains 'mutatedPerformanceOutcome') {
+                $mutatedPerformanceOutcome = Get-PerformanceAuditOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                if ($null -eq $route[0].mutatedPerformanceOutcome) {
+                    if ($null -ne $mutatedPerformanceOutcome) { Add-Failure "$($case.id) mutated performance outcome must be eliminated by actual prompt text" }
+                }
+                elseif ($null -eq $mutatedPerformanceOutcome) {
+                    Add-Failure "$($case.id) mutated performance outcome is missing"
+                }
+                else {
+                    foreach ($property in @('measurementRequired', 'baselineRequired', 'noClaimWithoutData', 'scopeRefinementRequired', 'metricSpecificity')) {
+                        if ($route[0].mutatedPerformanceOutcome.$property -ne $mutatedPerformanceOutcome.$property) { Add-Failure "$($case.id) mutated performance outcome $property does not match actual prompt text" }
+                    }
                 }
             }
         }
