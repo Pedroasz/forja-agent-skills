@@ -38,5 +38,23 @@
     "project": "FORJA",
     "prompt": "Hypothetically, how would a new FORJA RLS migration isolate workspace records by tenant? Do not execute it.",
     "mutatedPrompt": "Explain a generic access-control concept in documentation only."
+  },
+  {
+    "id": "table-index-migration",
+    "project": "FORJA",
+    "prompt": "Create a new incremental FORJA migration to add an index for tenant_id queries.",
+    "mutatedPrompt": "Document how FORJA tenants organize their query workload."
+  },
+  {
+    "id": "rls-policy-migration",
+    "project": "FORJA",
+    "prompt": "Add a FORJA RLS policy in a new migration for workspace records.",
+    "mutatedPrompt": "Update the FORJA profile copy for workspace records."
+  },
+  {
+    "id": "hypothetical-database-question",
+    "project": "FORJA",
+    "prompt": "Hypothetically, what would a new FORJA database migration need to isolate tenant records? Do not execute it.",
+    "mutatedPrompt": "Explain generic database isolation in documentation only."
   }
 ]

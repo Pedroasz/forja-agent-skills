@@ -5,5 +5,8 @@
   { "id": "login-bug", "selectedSkills": ["forja-auth-storage-safety"] },
   { "id": "profile-copy", "selectedSkills": [] },
   { "id": "auth-tenant-profile-mixed", "selectedSkills": ["forja-auth-storage-safety"] },
-  { "id": "hypothetical-rls-migration", "selectedSkills": ["forja-auth-storage-safety"], "planningOnly": true }
+  { "id": "hypothetical-rls-migration", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"], "planningOnly": true },
+  { "id": "table-index-migration", "selectedSkills": ["forja-supabase-migration"] },
+  { "id": "rls-policy-migration", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"] },
+  { "id": "hypothetical-database-question", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"], "planningOnly": true }
 ]

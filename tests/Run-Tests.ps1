@@ -208,7 +208,15 @@ function Get-SkillSelection {
     if ($Project -ne 'FORJA') {
         return @()
     }
-    if ($text -match '\b(authentication|authenticated|unauthenticated|session|workspace|tenant|storage|rls|migration|policy)\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b') {
+    $isMigration = $text -match '\b(migration|schema|database|table|index)\b'
+    $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|storage|rls|policy)\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
+    if ($isMigration -and $isBoundary) {
+        return @('forja-supabase-migration', 'forja-auth-storage-safety')
+    }
+    if ($isMigration) {
+        return @('forja-supabase-migration')
+    }
+    if ($isBoundary) {
         return @('forja-auth-storage-safety')
     }
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
@@ -235,7 +243,7 @@ function Assert-SkillTriggerSuite {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) { Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence" }
         }
-        if ($case.id -eq 'hypothetical-rls-migration' -and $route[0].planningOnly -ne $true) { Add-Failure 'hypothetical RLS migration must remain planning-only' }
+        if ($case.id -match '^hypothetical-' -and $route[0].planningOnly -ne $true) { Add-Failure "$($case.id) must remain planning-only" }
     }
 
     $skillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-safe-frontend-change/SKILL.md'
@@ -283,6 +291,24 @@ function Assert-SkillTriggerSuite {
     $authReference = Get-Content -LiteralPath $authReferencePath -Raw
     foreach ($check in @('authenticated actor', 'tenant isolation', 'cross-workspace', 'storage', 'real data', 'explicit approval')) {
         if ($authReference -notmatch "(?is)$check") { Add-Failure "auth and storage boundaries reference is missing check: $check" }
+    }
+
+    $migrationSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-supabase-migration/SKILL.md'
+    $migrationReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-supabase-migration/references/migration-runbook.md'
+    if (-not (Test-Path -LiteralPath $migrationSkillPath -PathType Leaf)) { Add-Failure 'supabase migration skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $migrationReferencePath -PathType Leaf)) { Add-Failure 'supabase migration runbook is missing'; return }
+
+    $migrationSkill = Get-Content -LiteralPath $migrationSkillPath -Raw
+    if ($migrationSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-supabase-migration\s*\r?\ndescription:\s*Use when') { Add-Failure 'supabase migration front matter is invalid' }
+    $migrationFrontMatter = [regex]::Match($migrationSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($migrationFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'supabase migration front matter must contain only name and description' }
+    if (($actualHeadings = @($migrationSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'supabase migration must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('HIGH', 'new incremental migration', 'applied migration', 'baseline', 'dry-run', 'db reset', 'migration list', 'RLS', 'UPDATE USING', 'WITH CHECK', 'Data API', 'GRANT', 'explicit approval', 'planning-only', 'remote')) {
+        if ($migrationSkill -notmatch "(?is)$requirement") { Add-Failure "supabase migration skill requirement is missing: $requirement" }
+    }
+    $migrationReference = Get-Content -LiteralPath $migrationReferencePath -Raw
+    foreach ($check in @('supabase migration new', 'supabase db reset', 'supabase migration list', 'supabase db push --dry-run', 'supabase test db', 'advisor', 'rollback', 'actor', 'tenant', 'index', 'GRANT')) {
+        if ($migrationReference -notmatch "(?is)$([regex]::Escape($check))") { Add-Failure "supabase migration runbook is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
