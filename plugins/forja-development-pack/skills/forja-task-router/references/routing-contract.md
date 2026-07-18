@@ -36,6 +36,7 @@ Apply every matching row in addition to the base risk row. Never stop scanning a
 
 ## Required Boundaries
 
+- `forja-task-router` is the decision mechanism and does not select or list itself in either `Selected skills` or `Skills deliberately not selected`.
 - Never select a FORJA skill for another project.
 - Never treat a hypothetical question as authority to execute.
 - Never delete production data, deploy, run remote database commands, use real credentials, or claim validation that did not occur.

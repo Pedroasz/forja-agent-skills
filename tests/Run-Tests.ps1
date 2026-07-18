@@ -911,7 +911,7 @@ function Get-SkillPackRouterRecord {
     $allSkills = @(
         'forja-auth-storage-safety', 'forja-data-recovery', 'forja-documentation', 'forja-incident-response',
         'forja-independent-review', 'forja-performance-audit', 'forja-release-pipeline', 'forja-safe-frontend-change',
-        'forja-supabase-migration', 'forja-task-router', 'forja-test-strategy', 'forja-ux-accessibility'
+        'forja-supabase-migration', 'forja-test-strategy', 'forja-ux-accessibility'
     )
     $isIncidentRecovery = $text -match '\bconfirmed\b' -and $text -match '\bproduction outage\b' -and $text -match '\b(suspected data loss|restore)\b'
     $isModalRls = $text -match '\bmodal dialog\b' -and $text -match '\b(rls|row level security)\b' -and $text -match '\bmigration\b'
@@ -1014,6 +1014,7 @@ function Assert-SkillPackSuite {
     foreach ($requirement in @(
         'highest risk determines the risk level and gates',
         'NEVER replaces lower-risk applicable skills',
+        'forja-task-router.*decision mechanism.*does not select or list itself',
         'keyboard.*focus.*contrast.*modal.*accessibility.*forja-ux-accessibility.*forja-safe-frontend-change',
         'performance.*forja-performance-audit',
         'explicit test strategy.*forja-test-strategy',
