@@ -210,15 +210,25 @@ function Get-SkillSelection {
     }
     $isMigration = $text -match '\b(migration|schema|database|table|index)\b'
     $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|storage|rls|policy)\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
+    $isPackageRelease = $text -match '\b(development pack|skills package)\b' -and $text -match '\b(release|version|changelog|tag)\b'
+    $isSaasRelease = $text -match '\bsaas\b' -and $text -match '\b(release|deploy|production)\b'
+    $isRelease = $isPackageRelease -or $isSaasRelease
     if ($isMigration -and $isBoundary) {
-        return @('forja-supabase-migration', 'forja-auth-storage-safety')
+        $selection = @('forja-supabase-migration', 'forja-auth-storage-safety')
+        if ($isRelease) { $selection += 'forja-release-pipeline' }
+        return $selection
     }
     if ($isMigration) {
-        return @('forja-supabase-migration')
+        $selection = @('forja-supabase-migration')
+        if ($isRelease) { $selection += 'forja-release-pipeline' }
+        return $selection
     }
     if ($isBoundary) {
-        return @('forja-auth-storage-safety')
+        $selection = @('forja-auth-storage-safety')
+        if ($isRelease) { $selection += 'forja-release-pipeline' }
+        return $selection
     }
+    if ($isRelease) { return @('forja-release-pipeline') }
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         return @()
     }
@@ -226,6 +236,21 @@ function Get-SkillSelection {
         return @('forja-safe-frontend-change')
     }
     return @()
+}
+
+function Get-ReleaseGate {
+    param([string]$Project, [string]$Prompt)
+
+    $text = $Prompt.ToLowerInvariant()
+    $isPackageDocsOnly = $Project -eq 'FORJA' -and $text -match '\b(development pack|skills package)\b' -and $text -match '\b(docs-only|documentation-only|documentation|docs)\b' -and $text -match '\b(release|version|changelog|tag)\b'
+    $isFunctionalSaas = $Project -eq 'FORJA' -and $text -match '\bsaas\b' -and $text -match '\b(release|deploy|production)\b' -and $text -match '\b(functional|dashboard|ui|frontend|migration|rls)\b'
+    if ($isFunctionalSaas) {
+        return [PSCustomObject]@{ releaseKind = 'SAAS_FUNCTIONAL'; riskLevel = 'HIGH'; autoMergeEligible = $false; requiresHumanApproval = $true }
+    }
+    if ($isPackageDocsOnly) {
+        return [PSCustomObject]@{ releaseKind = 'PACKAGE_DOCS_ONLY'; riskLevel = 'LOW'; autoMergeEligible = $true; requiresHumanApproval = $false }
+    }
+    return $null
 }
 
 function Assert-SkillTriggerSuite {
@@ -241,9 +266,29 @@ function Assert-SkillTriggerSuite {
 
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
-            if (($mutated -join '|') -eq ($actual -join '|')) { Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence" }
+            if (($mutated -join '|') -eq ($actual -join '|')) {
+                if ($null -eq $route[0].releaseKind) {
+                    Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence"
+                }
+                else {
+                    $originalGate = Get-ReleaseGate -Project $case.project -Prompt $case.prompt
+                    $mutatedGate = Get-ReleaseGate -Project $case.project -Prompt $case.mutatedPrompt
+                    if ($null -eq $originalGate -or $null -eq $mutatedGate -or $originalGate.releaseKind -eq $mutatedGate.releaseKind) {
+                        Add-Failure "$($case.id) mutated prompt did not change the release-gate evidence"
+                    }
+                }
+            }
         }
         if ($case.id -match '^hypothetical-' -and $route[0].planningOnly -ne $true) { Add-Failure "$($case.id) must remain planning-only" }
+
+        if ($null -ne $route[0].releaseKind) {
+            $gate = Get-ReleaseGate -Project $case.project -Prompt $case.prompt
+            if ($null -eq $gate) { Add-Failure "$($case.id) does not contain release-gate evidence"; continue }
+            foreach ($field in @('releaseKind', 'autoMergeEligible', 'requiresHumanApproval')) {
+                if ($route[0].$field -ne $gate.$field) { Add-Failure "$($case.id) $field does not match actual prompt text" }
+            }
+            if ($null -ne $route[0].riskLevel -and $route[0].riskLevel -ne $gate.riskLevel) { Add-Failure "$($case.id) risk level does not preserve the release gate" }
+        }
     }
 
     $skillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-safe-frontend-change/SKILL.md'
@@ -309,6 +354,24 @@ function Assert-SkillTriggerSuite {
     $migrationReference = Get-Content -LiteralPath $migrationReferencePath -Raw
     foreach ($check in @('supabase migration new', 'supabase db reset', 'supabase migration list', 'supabase db push --dry-run', 'supabase test db', 'advisor', 'rollback', 'actor', 'tenant', 'index', 'GRANT')) {
         if ($migrationReference -notmatch "(?is)$([regex]::Escape($check))") { Add-Failure "supabase migration runbook is missing check: $check" }
+    }
+
+    $releaseSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-release-pipeline/SKILL.md'
+    $releaseReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-release-pipeline/references/release-gates.md'
+    if (-not (Test-Path -LiteralPath $releaseSkillPath -PathType Leaf)) { Add-Failure 'release pipeline skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $releaseReferencePath -PathType Leaf)) { Add-Failure 'release gates reference is missing'; return }
+
+    $releaseSkill = Get-Content -LiteralPath $releaseSkillPath -Raw
+    if ($releaseSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-release-pipeline\s*\r?\ndescription:\s*Use when') { Add-Failure 'release pipeline front matter is invalid' }
+    $releaseFrontMatter = [regex]::Match($releaseSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($releaseFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'release pipeline front matter must contain only name and description' }
+    if (($actualHeadings = @($releaseSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'release pipeline must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('FORJA Development Pack', 'skills package', 'SaaS', 'docs-only', 'functional', 'branch protection', 'checks', 'reviews', 'evidence', 'version', 'changelog', 'tag', 'explicit human approval', 'merge', 'deploy', 'rollback', 'remote confirmation')) {
+        if ($releaseSkill -notmatch "(?is)$requirement") { Add-Failure "release pipeline skill requirement is missing: $requirement" }
+    }
+    $releaseReference = Get-Content -LiteralPath $releaseReferencePath -Raw
+    foreach ($check in @('PACKAGE_DOCS_ONLY', 'SAAS_FUNCTIONAL', 'branch protection', 'CI', 'checks', 'reviews', 'evidence', 'version', 'changelog', 'annotated tag', 'remote confirmation', 'rollback', 'explicit human approval')) {
+        if ($releaseReference -notmatch "(?is)$check") { Add-Failure "release gates reference is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }

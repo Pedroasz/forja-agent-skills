@@ -8,5 +8,8 @@
   { "id": "hypothetical-rls-migration", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"], "planningOnly": true },
   { "id": "table-index-migration", "selectedSkills": ["forja-supabase-migration"] },
   { "id": "rls-policy-migration", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"] },
-  { "id": "hypothetical-database-question", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"], "planningOnly": true }
+  { "id": "hypothetical-database-question", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety"], "planningOnly": true },
+  { "id": "package-docs-only-release", "selectedSkills": ["forja-release-pipeline"], "releaseKind": "PACKAGE_DOCS_ONLY", "autoMergeEligible": true, "requiresHumanApproval": false },
+  { "id": "functional-saas-release", "selectedSkills": ["forja-release-pipeline"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true },
+  { "id": "high-risk-saas-release", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety", "forja-release-pipeline"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true }
 ]

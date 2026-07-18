@@ -56,5 +56,23 @@
     "project": "FORJA",
     "prompt": "Hypothetically, what would a new FORJA database migration need to isolate tenant records? Do not execute it.",
     "mutatedPrompt": "Explain generic database isolation in documentation only."
+  },
+  {
+    "id": "package-docs-only-release",
+    "project": "FORJA",
+    "prompt": "Prepare the FORJA Development Pack docs-only skills package release with validated changelog and version evidence.",
+    "mutatedPrompt": "Update the FORJA Development Pack README with validated local setup instructions."
+  },
+  {
+    "id": "functional-saas-release",
+    "project": "FORJA",
+    "prompt": "Prepare the release of a functional FORJA SaaS dashboard change after its checks pass.",
+    "mutatedPrompt": "Prepare the release notes for a documentation-only FORJA Development Pack skills change."
+  },
+  {
+    "id": "high-risk-saas-release",
+    "project": "FORJA",
+    "prompt": "Prepare the FORJA SaaS release that includes an RLS migration after checks pass.",
+    "mutatedPrompt": "Prepare the FORJA Development Pack documentation-only skills release with evidence."
   }
 ]
