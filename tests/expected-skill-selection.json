@@ -56,6 +56,7 @@
   { "id": "documentation-drive-report-evidence", "selectedSkills": ["forja-documentation", "forja-release-pipeline"], "documentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "DRIVE" }, "mutatedDocumentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "DRIVE" } },
   { "id": "documentation-evidence-source-mutation", "selectedSkills": ["forja-documentation"], "documentationOutcome": { "evidenceCompleteness": true, "confirmationScope": "LOCAL_ARTIFACT" }, "mutatedDocumentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "LOCAL_ARTIFACT" } },
   { "id": "documentation-drive-update-backup", "selectedSkills": ["forja-documentation", "forja-release-pipeline"], "documentationOutcome": { "evidenceCompleteness": true, "confirmationScope": "DRIVE" }, "mutatedDocumentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "DRIVE" } },
+  { "id": "documentation-drive-primary-metadata-not-backup", "selectedSkills": ["forja-documentation", "forja-release-pipeline"], "documentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "DRIVE" } },
   { "id": "documentation-drive-new-file-backup-not-applicable", "selectedSkills": ["forja-documentation", "forja-release-pipeline"], "documentationOutcome": { "evidenceCompleteness": true, "confirmationScope": "DRIVE" } },
   { "id": "documentation-id-not-routing", "selectedSkills": [] },
   { "id": "documentation-academic-anti-trigger", "selectedSkills": [] }

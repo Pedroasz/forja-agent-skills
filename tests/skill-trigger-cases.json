@@ -326,13 +326,18 @@
   {
     "id": "documentation-drive-update-backup",
     "project": "FORJA",
-    "prompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Pre-update metadata read confirmed. Backup file ID: backup-42. Backup name: report.backup-2026-07-18-1200.md. Backup size: 1024 bytes. Backup modified: 2026-07-18T11:59:00Z. Backup confirmation: confirmed reread before update. Preserve original file ID: file-42.",
+    "prompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z.\nFolder ID: folder-42\nFile ID: file-42\nSize: 2048 bytes\nModified: 2026-07-18T12:01:00Z\nPost-upload reread confirmed metadata\nPre-update metadata read confirmed\nBackup file ID: backup-42\nBackup name: report.backup-2026-07-18-1200.md\nBackup size: 1024 bytes\nBackup modified: 2026-07-18T11:59:00Z\nBackup confirmation: confirmed reread before update\nPreserve original file ID: file-42",
     "mutatedPrompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Pre-update metadata read. Preserve original file ID: file-42."
+  },
+  {
+    "id": "documentation-drive-primary-metadata-not-backup",
+    "project": "FORJA",
+    "prompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: unknown. Size: N/A. Modified: unknown. Post-upload reread confirmed metadata. Pre-update metadata read confirmed. Backup file ID: backup-42. Backup name: report.backup-2026-07-18-1200.md. Backup size: 1024 bytes. Backup modified: 2026-07-18T11:59:00Z. Backup confirmation: confirmed reread before update. Preserve original file ID: file-42."
   },
   {
     "id": "documentation-drive-new-file-backup-not-applicable",
     "project": "FORJA",
-    "prompt": "Upload a new FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Backup status: NOT_APPLICABLE. Reason: new-file upload has no existing remote file."
+    "prompt": "Upload a new FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z.\nFolder ID: folder-42\nFile ID: file-42\nSize: 2048 bytes\nModified: 2026-07-18T12:01:00Z\nPost-upload reread confirmed metadata\nBackup status: NOT_APPLICABLE\nReason: new-file upload has no existing remote file"
   },
   {
     "id": "documentation-id-not-routing",
