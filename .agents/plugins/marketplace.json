@@ -1,0 +1,20 @@
+{
+  "name": "forja-development",
+  "interface": {
+    "displayName": "FORJA Development Pack"
+  },
+  "plugins": [
+    {
+      "name": "forja-development-pack",
+      "source": {
+        "source": "local",
+        "path": "./plugins/forja-development-pack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

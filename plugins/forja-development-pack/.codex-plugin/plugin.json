@@ -1,0 +1,34 @@
+{
+  "name": "forja-development-pack",
+  "version": "1.0.0",
+  "description": "Safe, evidence-based development workflows for the FORJA SaaS.",
+  "author": {
+    "name": "Pedroasz",
+    "url": "https://github.com/Pedroasz"
+  },
+  "homepage": "https://github.com/Pedroasz/forja-agent-skills",
+  "repository": "https://github.com/Pedroasz/forja-agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "forja",
+    "development",
+    "safety"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "FORJA Development Pack",
+    "shortDescription": "Safe workflows for FORJA development.",
+    "longDescription": "Evidence-based skills for planning, changing, validating, and reviewing FORJA safely.",
+    "developerName": "Pedroasz",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Guidance"
+    ],
+    "websiteURL": "https://github.com/Pedroasz/forja-agent-skills",
+    "defaultPrompt": [
+      "Plan a safe FORJA change with validation steps.",
+      "Review this FORJA task for risks and approvals.",
+      "Explain the safest next step for this FORJA issue."
+    ]
+  }
+}
