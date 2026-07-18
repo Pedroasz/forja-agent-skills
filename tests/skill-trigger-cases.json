@@ -233,6 +233,29 @@
     "mutatedPrompt": "Update the FORJA RLS database performance documentation."
   },
   {
+    "id": "test-strategy-docs",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA README documentation change.",
+    "mutatedPrompt": "Create a test strategy for a FORJA RLS policy migration and README documentation change."
+  },
+  {
+    "id": "test-strategy-frontend",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA dashboard navigation button change on desktop and mobile."
+  },
+  {
+    "id": "test-strategy-rls",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA RLS policy migration with tenant isolation.",
+    "mutatedPrompt": "Create a test strategy for FORJA README documentation only."
+  },
+  {
+    "id": "test-strategy-production-gate",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for non-mutating observation of a FORJA RLS policy migration in production.",
+    "mutatedPrompt": "Create a test strategy to execute a FORJA RLS policy migration in production."
+  },
+  {
     "id": "performance-review-docs-only",
     "project": "FORJA",
     "prompt": "Update the FORJA performance review documentation in the README."

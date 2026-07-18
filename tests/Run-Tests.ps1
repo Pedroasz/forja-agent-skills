@@ -219,8 +219,10 @@ function Get-SkillSelection {
     $hasPerformanceMetric = $text -match '\b(html|download|size|bytes?|weight|request|call|latency|slow|slowness|faster|render|rendering|paint|performance)\b'
     $hasPerformanceIntent = $text -match '\b(measure|audit|investigate|profile|improve|reduce|optimize|make|load|render)\b'
     $isPerformanceAudit = $hasPerformanceMetric -and $hasPerformanceIntent
+    $isTestStrategy = $text -match '\b(test strategy|test matrix|testing strategy|test plan)\b'
     if ($isMigration -and $isBoundary) {
         $selection = @('forja-supabase-migration', 'forja-auth-storage-safety')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
@@ -228,6 +230,7 @@ function Get-SkillSelection {
     }
     if ($isMigration) {
         $selection = @('forja-supabase-migration')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
@@ -235,6 +238,7 @@ function Get-SkillSelection {
     }
     if ($isBoundary) {
         $selection = @('forja-auth-storage-safety')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
@@ -247,6 +251,7 @@ function Get-SkillSelection {
     }
     if ($isIndependentReview) { return @('forja-independent-review') }
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
+        if ($isTestStrategy) { return @('forja-test-strategy') }
         return @()
     }
     if ($isPerformanceAudit) { return @('forja-performance-audit') }
@@ -261,9 +266,28 @@ function Get-SkillSelection {
         return @('forja-ux-accessibility')
     }
     if ($text -match '\b(button|navigation|frontend|ui|form|html|css|javascript)\b') {
-        return @('forja-safe-frontend-change')
+        $selection = @('forja-safe-frontend-change')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
+        return $selection
     }
     return @()
+}
+
+function Get-TestStrategyOutcome {
+    param([string]$Project, [string]$Prompt)
+
+    if ((Get-SkillSelection -Project $Project -Prompt $Prompt) -notcontains 'forja-test-strategy') { return $null }
+
+    $text = $Prompt.ToLowerInvariant()
+    $isHigh = $text -match '\b(rls|migration|policy|schema|authentication|storage|workspace|tenant)\b'
+    $isFrontend = $text -match '\b(dashboard|button|navigation|frontend|ui|form|html|css|javascript|mobile)\b'
+    $isProduction = $text -match '\b(production|prod)\b'
+    $isProductionMutation = $isProduction -and $text -match '\b(execute|run|apply|change|mutate|write)\b'
+    return [PSCustomObject]@{
+        risk = if ($isHigh) { 'HIGH' } elseif ($isFrontend) { 'MODERATE' } else { 'LOW' }
+        matrix = if ($isHigh) { 'static|content|manifest|unit|integration|browser|desktop|mobile|navigation|authenticated-actor|rls|tenant|storage|local-migration' } elseif ($isFrontend) { 'static|content|manifest|unit|integration|browser|desktop|mobile|navigation' } else { 'static|content|manifest' }
+        productionGate = if ($isProductionMutation) { 'AUTHORIZED_EXECUTION_REQUIRED' } elseif ($isProduction) { 'NON_MUTATING_OBSERVATION' } else { 'NOT_APPLICABLE' }
+    }
 }
 
 function Get-PerformanceAuditOutcome {
@@ -353,6 +377,21 @@ function Assert-SkillTriggerSuite {
             }
         }
 
+        if ($null -ne $route[0].testStrategyOutcome) {
+            if ($null -eq (Get-Command Get-TestStrategyOutcome -ErrorAction SilentlyContinue)) {
+                Add-Failure "$($case.id) test strategy outcome gate is missing"
+            }
+            else {
+                $outcome = Get-TestStrategyOutcome -Project $case.project -Prompt $case.prompt
+                if ($null -eq $outcome) { Add-Failure "$($case.id) test strategy outcome is missing" }
+                else {
+                    foreach ($property in @('risk', 'matrix', 'productionGate')) {
+                        if ($route[0].testStrategyOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) test strategy outcome $property does not match actual prompt text" }
+                    }
+                }
+            }
+        }
+
         if ($null -ne $route[0].reviewOutcome) {
             if ($null -eq (Get-Command Get-IndependentReviewOutcome -ErrorAction SilentlyContinue)) {
                 Add-Failure "$($case.id) independent review outcome gate is missing"
@@ -368,7 +407,7 @@ function Assert-SkillTriggerSuite {
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) {
-                if ($null -ne $route[0].mutatedReviewOutcome -or ($route[0].PSObject.Properties.Name -contains 'mutatedPerformanceOutcome')) {
+                if ($null -ne $route[0].mutatedReviewOutcome -or ($route[0].PSObject.Properties.Name -contains 'mutatedPerformanceOutcome') -or ($route[0].PSObject.Properties.Name -contains 'mutatedTestStrategyOutcome')) {
                     # The review outcome assertion below proves the meaningful prompt-derived change.
                 }
                 elseif ($null -eq $route[0].releaseKind) {
@@ -399,6 +438,15 @@ function Assert-SkillTriggerSuite {
                 else {
                     foreach ($property in @('measurementRequired', 'baselineRequired', 'noClaimWithoutData', 'scopeRefinementRequired', 'metricSpecificity')) {
                         if ($route[0].mutatedPerformanceOutcome.$property -ne $mutatedPerformanceOutcome.$property) { Add-Failure "$($case.id) mutated performance outcome $property does not match actual prompt text" }
+                    }
+                }
+            }
+            if ($route[0].PSObject.Properties.Name -contains 'mutatedTestStrategyOutcome') {
+                $mutatedTestStrategyOutcome = Get-TestStrategyOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                if ($null -eq $mutatedTestStrategyOutcome) { Add-Failure "$($case.id) mutated test strategy outcome is missing" }
+                else {
+                    foreach ($property in @('risk', 'matrix', 'productionGate')) {
+                        if ($route[0].mutatedTestStrategyOutcome.$property -ne $mutatedTestStrategyOutcome.$property) { Add-Failure "$($case.id) mutated test strategy outcome $property does not match actual prompt text" }
                     }
                 }
             }
@@ -550,6 +598,24 @@ function Assert-SkillTriggerSuite {
     $performanceReference = Get-Content -LiteralPath $performanceReferencePath -Raw
     foreach ($check in @('hypothesis', 'metric', 'workload', 'environment', 'tool', 'baseline', 'same conditions', 'effect size', 'regression', 'variance', 'HTML', 'download size', 'requests', 'latency', 'render', 'Storage', 'database', 'rollback')) {
         if ($performanceReference -notmatch "(?is)$check") { Add-Failure "performance measurements reference is missing check: $check" }
+    }
+
+    $testStrategySkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-test-strategy/SKILL.md'
+    $testStrategyReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-test-strategy/references/test-matrix.md'
+    if (-not (Test-Path -LiteralPath $testStrategySkillPath -PathType Leaf)) { Add-Failure 'test strategy skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $testStrategyReferencePath -PathType Leaf)) { Add-Failure 'test matrix reference is missing'; return }
+
+    $testStrategySkill = Get-Content -LiteralPath $testStrategySkillPath -Raw
+    if ($testStrategySkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-test-strategy\s*\r?\ndescription:\s*Use when') { Add-Failure 'test strategy front matter is invalid' }
+    $testStrategyFrontMatter = [regex]::Match($testStrategySkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($testStrategyFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'test strategy front matter must contain only name and description' }
+    if (($actualHeadings = @($testStrategySkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'test strategy must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('LOW', 'MODERATE', 'HIGH', 'CRITICAL', 'highest risk prevails', 'smallest-sufficient', 'static', 'content', 'manifest', 'unit', 'integration', 'browser', 'desktop', 'mobile', 'navigation', 'authenticated actor', 'RLS', 'tenant', 'Storage', 'local migration', 'offline', 'preview', 'production', 'non-mutating observation', 'authorized execution')) {
+        if ($testStrategySkill -notmatch "(?is)$requirement") { Add-Failure "test strategy skill requirement is missing: $requirement" }
+    }
+    $testStrategyReference = Get-Content -LiteralPath $testStrategyReferencePath -Raw
+    foreach ($check in @('static', 'content', 'manifest', 'unit', 'integration', 'browser', 'desktop', 'mobile', 'navigation', 'authenticated actor', 'RLS', 'tenant', 'Storage', 'local migration', 'offline', 'preview', 'production', 'non-mutating observation', 'authorized execution', 'smallest-sufficient')) {
+        if ($testStrategyReference -notmatch "(?is)$check") { Add-Failure "test matrix reference is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
