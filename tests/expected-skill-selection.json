@@ -13,5 +13,8 @@
   { "id": "package-docs-only-release-complete", "selectedSkills": ["forja-release-pipeline"], "releaseKind": "PACKAGE_DOCS_ONLY", "autoMergeEligible": true, "requiresHumanApproval": false },
   { "id": "functional-saas-release", "selectedSkills": ["forja-release-pipeline"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true },
   { "id": "functional-saas-release-with-evidence", "selectedSkills": ["forja-release-pipeline"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true },
-  { "id": "high-risk-saas-release", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety", "forja-release-pipeline"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true }
+  { "id": "high-risk-saas-release", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety", "forja-release-pipeline"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true },
+  { "id": "independent-code-pr-review", "selectedSkills": ["forja-independent-review"] },
+  { "id": "independent-documentation-pr-review", "selectedSkills": ["forja-independent-review"] },
+  { "id": "independent-review-pressure", "selectedSkills": ["forja-independent-review"] }
 ]

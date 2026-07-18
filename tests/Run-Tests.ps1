@@ -208,6 +208,7 @@ function Get-SkillSelection {
     if ($Project -ne 'FORJA') {
         return @()
     }
+    $isIndependentReview = $text -match '\b(review|audit)\b' -and $text -match '\b(pr|pull request|diff)\b'
     $isMigration = $text -match '\b(migration|schema|database|table|index)\b'
     $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|storage|rls|policy)\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
     $isPackageRelease = $text -match '\b(development pack|skills package)\b' -and $text -match '\b(release|version|changelog|tag)\b'
@@ -216,19 +217,27 @@ function Get-SkillSelection {
     if ($isMigration -and $isBoundary) {
         $selection = @('forja-supabase-migration', 'forja-auth-storage-safety')
         if ($isRelease) { $selection += 'forja-release-pipeline' }
+        if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
     if ($isMigration) {
         $selection = @('forja-supabase-migration')
         if ($isRelease) { $selection += 'forja-release-pipeline' }
+        if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
     if ($isBoundary) {
         $selection = @('forja-auth-storage-safety')
         if ($isRelease) { $selection += 'forja-release-pipeline' }
+        if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
-    if ($isRelease) { return @('forja-release-pipeline') }
+    if ($isRelease) {
+        $selection = @('forja-release-pipeline')
+        if ($isIndependentReview) { $selection += 'forja-independent-review' }
+        return $selection
+    }
+    if ($isIndependentReview) { return @('forja-independent-review') }
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         return @()
     }
@@ -379,6 +388,24 @@ function Assert-SkillTriggerSuite {
     $releaseReference = Get-Content -LiteralPath $releaseReferencePath -Raw
     foreach ($check in @('PACKAGE_DOCS_ONLY', 'SAAS_FUNCTIONAL', 'branch protection', 'CI', 'checks', 'reviews', 'evidence', 'version', 'changelog', 'annotated tag', 'remote confirmation', 'rollback', 'explicit human approval')) {
         if ($releaseReference -notmatch "(?is)$check") { Add-Failure "release gates reference is missing check: $check" }
+    }
+
+    $reviewSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-independent-review/SKILL.md'
+    $reviewReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-independent-review/references/review-rubric.md'
+    if (-not (Test-Path -LiteralPath $reviewSkillPath -PathType Leaf)) { Add-Failure 'independent review skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $reviewReferencePath -PathType Leaf)) { Add-Failure 'independent review rubric is missing'; return }
+
+    $reviewSkill = Get-Content -LiteralPath $reviewSkillPath -Raw
+    if ($reviewSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-independent-review\s*\r?\ndescription:\s*Use when') { Add-Failure 'independent review front matter is invalid' }
+    $reviewFrontMatter = [regex]::Match($reviewSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($reviewFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'independent review front matter must contain only name and description' }
+    if (($actualHeadings = @($reviewSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'independent review must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('architecture', 'security', 'usability', 'accessibility', 'severity', 'evidence', 'file', 'line', 'impact', 'recommended fix', 'status', 'Critical', 'High', 'merge-blocking', 'explicit risk authority', 're-reviewed', 'no findings', 'line references.*not applicable', 'do not.*invent evidence', 'approve quickly')) {
+        if ($reviewSkill -notmatch "(?is)$requirement") { Add-Failure "independent review skill requirement is missing: $requirement" }
+    }
+    $reviewReference = Get-Content -LiteralPath $reviewReferencePath -Raw
+    foreach ($check in @('Architecture', 'Security', 'Usability', 'Accessibility', 'Critical', 'High', 'severity', 'evidence', 'file', 'line', 'impact', 'recommended fix', 'status', 'Accepted risk', 're-review')) {
+        if ($reviewReference -notmatch "(?is)$check") { Add-Failure "independent review rubric is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }

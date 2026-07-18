@@ -85,5 +85,23 @@
     "project": "FORJA",
     "prompt": "Prepare the FORJA SaaS release that includes an RLS migration after checks pass.",
     "mutatedPrompt": "Prepare the FORJA Development Pack documentation-only skills release with evidence."
+  },
+  {
+    "id": "independent-code-pr-review",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code PR independently before deciding whether it can merge; inspect the diff and report findings.",
+    "mutatedPrompt": "Implement the FORJA code change described in the diff."
+  },
+  {
+    "id": "independent-documentation-pr-review",
+    "project": "FORJA",
+    "prompt": "Independently review this FORJA documentation PR and its diff before merge, with evidence for every finding.",
+    "mutatedPrompt": "Update the FORJA documentation with the reviewed content."
+  },
+  {
+    "id": "independent-review-pressure",
+    "project": "FORJA",
+    "prompt": "Review this FORJA PR independently and approve quickly if possible; inspect the actual diff and keep merge gates evidence-based.",
+    "mutatedPrompt": "Write a quick FORJA project status note."
   }
 ]
