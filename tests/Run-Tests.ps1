@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Manifests', 'Routing', 'SkillTriggers')]
+    [ValidateSet('Manifests', 'Routing', 'SkillTriggers', 'SkillPack')]
     [string]$Suite = 'Manifests'
 )
 
@@ -904,6 +904,135 @@ function Get-DocumentationEvidenceOutcome {
     return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasCommitHash); confirmationScope = 'LOCAL_ARTIFACT' }
 }
 
+function Get-SkillPackRouterRecord {
+    param([string]$Prompt)
+
+    $text = $Prompt.ToLowerInvariant()
+    $allSkills = @(
+        'forja-auth-storage-safety', 'forja-data-recovery', 'forja-documentation', 'forja-incident-response',
+        'forja-independent-review', 'forja-performance-audit', 'forja-release-pipeline', 'forja-safe-frontend-change',
+        'forja-supabase-migration', 'forja-task-router', 'forja-test-strategy', 'forja-ux-accessibility'
+    )
+    $isIncidentRecovery = $text -match '\bconfirmed\b' -and $text -match '\bproduction outage\b' -and $text -match '\b(suspected data loss|restore)\b'
+    $isModalRls = $text -match '\bmodal dialog\b' -and $text -match '\b(rls|row level security)\b' -and $text -match '\bmigration\b'
+    if ($isModalRls) {
+        $selected = @('forja-safe-frontend-change', 'forja-ux-accessibility', 'forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy')
+        return [PSCustomObject]@{
+            taskSummary = 'Scoped FORJA modal accessibility change plus an incremental RLS migration.'
+            riskLevel = 'HIGH'
+            selectedSkills = $selected
+            skillsDeliberatelyNotSelected = @($allSkills | Where-Object { $_ -notin $selected })
+            requiredApprovals = @('Require approval before migration execution or FORJA SaaS merge.')
+            prohibitedActions = @('Do not execute remote database commands, production actions, or an unapproved SaaS merge.')
+            validationPlan = @('Validate modal keyboard, focus-return, and semantic behavior; run local incremental migration plus authenticated RLS tenant-isolation tests.')
+            stopConditions = @('Stop before remote database commands, production execution, or SaaS merge.')
+        }
+    }
+    if ($isIncidentRecovery) {
+        $selected = @('forja-incident-response', 'forja-data-recovery', 'forja-test-strategy', 'forja-documentation')
+        return [PSCustomObject]@{
+            taskSummary = 'Confirmed FORJA production outage with suspected data loss and a proposed restore.'
+            riskLevel = 'CRITICAL'
+            selectedSkills = $selected
+            skillsDeliberatelyNotSelected = @($allSkills | Where-Object { $_ -notin $selected })
+            requiredApprovals = @('Require explicit incident authority and specific recovery authorization before any production action.')
+            prohibitedActions = @('Do not restore production data, delete evidence, or run destructive production commands.')
+            validationPlan = @('Preserve incident evidence; simulate copy-first recovery with a read-only dry-run, counts, checksums, and post-verify plan.')
+            stopConditions = @('Stop before containment, restore, or any production action.')
+        }
+    }
+    return $null
+}
+
+function Assert-SkillPackSuite {
+    $skillsRoot = Join-Path $repoRoot 'plugins/forja-development-pack/skills'
+    $expectedNames = @(
+        'forja-auth-storage-safety', 'forja-data-recovery', 'forja-documentation', 'forja-incident-response',
+        'forja-independent-review', 'forja-performance-audit', 'forja-release-pipeline', 'forja-safe-frontend-change',
+        'forja-supabase-migration', 'forja-task-router', 'forja-test-strategy', 'forja-ux-accessibility'
+    )
+    $requiredHeadings = @('Purpose', 'Trigger conditions', 'Do not trigger when', 'Required inputs', 'Expected outputs', 'Risk classification', 'Workflow', 'Required checks', 'Stop conditions', 'Failure recovery', 'Handoff or next skills', 'Completion evidence')
+    $expectedReferences = @{
+        'forja-auth-storage-safety' = 'references/auth-storage-boundaries.md'; 'forja-data-recovery' = 'references/recovery-runbook.md'
+        'forja-documentation' = 'references/evidence-schema.md'; 'forja-incident-response' = 'references/incident-runbook.md'
+        'forja-independent-review' = 'references/review-rubric.md'; 'forja-performance-audit' = 'references/performance-measurements.md'
+        'forja-release-pipeline' = 'references/release-gates.md'; 'forja-safe-frontend-change' = 'references/frontend-safety-checks.md'
+        'forja-supabase-migration' = 'references/migration-runbook.md'; 'forja-task-router' = 'references/routing-contract.md'
+        'forja-test-strategy' = 'references/test-matrix.md'; 'forja-ux-accessibility' = 'references/accessibility-checks.md'
+    }
+    $skillDirectories = @(Get-ChildItem -LiteralPath $skillsRoot -Directory | Sort-Object Name)
+    if ($skillDirectories.Count -ne 12) { Add-Failure "skill pack must contain exactly 12 immediate skill directories; found $($skillDirectories.Count)" }
+    if ((@($skillDirectories.Name) -join '|') -ne ($expectedNames -join '|')) { Add-Failure 'skill pack directory names do not match the exact expected set' }
+
+    $descriptions = @{}
+    $primaryTriggers = @{}
+    $proseBlocks = @{}
+    foreach ($directory in $skillDirectories) {
+        $skillPath = Join-Path $directory.FullName 'SKILL.md'
+        if (-not (Test-Path -LiteralPath $skillPath -PathType Leaf)) { Add-Failure "$($directory.Name) is missing SKILL.md"; continue }
+        $referencePath = Join-Path $directory.FullName $expectedReferences[$directory.Name]
+        if (-not (Test-Path -LiteralPath $referencePath -PathType Leaf)) { Add-Failure "$($directory.Name) is missing its expected reference: $($expectedReferences[$directory.Name])" }
+        $content = Get-Content -LiteralPath $skillPath -Raw
+        $frontMatterMatch = [regex]::Match($content, '(?ms)\A---\s*\r?\n(.*?)\r?\n---')
+        if (-not $frontMatterMatch.Success) { Add-Failure "$($directory.Name) has invalid front matter"; continue }
+        $frontMatterLines = @($frontMatterMatch.Groups[1].Value -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        if ($frontMatterLines.Count -ne 2 -or $frontMatterLines[0] -ne "name: $($directory.Name)" -or $frontMatterLines[1] -notmatch '^description:\s*Use when\s+.+') { Add-Failure "$($directory.Name) front matter must contain only its name and a meaningful Use when description"; continue }
+        $description = $frontMatterLines[1].Substring('description:'.Length).Trim()
+        if ($descriptions.ContainsKey($description)) { Add-Failure "$($directory.Name) description collides with $($descriptions[$description])" } else { $descriptions[$description] = $directory.Name }
+        $trigger = ($description -replace '^Use when\s+', '' -split '[,;.]')[0].Trim().ToLowerInvariant()
+        if ($primaryTriggers.ContainsKey($trigger)) { Add-Failure "$($directory.Name) primary trigger collides with $($primaryTriggers[$trigger])" } else { $primaryTriggers[$trigger] = $directory.Name }
+        $headings = @($content -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) })
+        if (($headings -join '|') -ne ($requiredHeadings -join '|')) { Add-Failure "$($directory.Name) must contain exactly the required twelve H2 sections" }
+
+        foreach ($link in [regex]::Matches($content, '(?m)\[[^\]]+\]\(([^)\s#]+)(?:#[^)]+)?\)')) {
+            $target = $link.Groups[1].Value
+            if ($target -match '^[a-z][a-z0-9+.-]*:' -or $target.StartsWith('/')) { continue }
+            $resolved = [System.IO.Path]::GetFullPath((Join-Path $directory.FullName $target))
+            $rootWithSeparator = $directory.FullName.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+            if (-not $resolved.StartsWith($rootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $resolved -PathType Leaf)) { Add-Failure "$($directory.Name) has an unresolved or escaping relative markdown link: $target" }
+        }
+
+        # A duplicate is actionable only when it repeats at least 240 normalized characters and 40 words: this catches copied prose while excluding shared headings and field labels.
+        $body = [regex]::Replace($content, '(?s)\A---.*?---\s*', '')
+        foreach ($block in ($body -split '(?:\r?\n){2,}')) {
+            if ($block -match '^## ' -or $block -match '^(?:- )?[A-Za-z ]+:\s*$') { continue }
+            $normalized = ([regex]::Replace($block.ToLowerInvariant(), '[^\p{L}\p{N}]+', ' ')).Trim()
+            if ($normalized.Length -ge 240 -and (@($normalized -split '\s+' | Where-Object { $_ }).Count -ge 40)) { $proseBlocks["$($directory.Name)|$normalized"] = $directory.Name }
+        }
+    }
+    foreach ($entry in $proseBlocks.GetEnumerator()) {
+        $normalized = $entry.Key.Substring($entry.Key.IndexOf('|') + 1)
+        $owners = @($proseBlocks.Keys | Where-Object { $_.Substring($_.IndexOf('|') + 1) -eq $normalized } | ForEach-Object { $proseBlocks[$_] } | Select-Object -Unique)
+        if ($owners.Count -gt 1) { Add-Failure "large duplicated normalized prose block across skills: $($owners -join ', ')"; break }
+    }
+    Write-Output 'PASS: duplicate prose threshold is 240 normalized characters and 40 words'
+
+    $python = 'C:\Users\Pedro\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
+    $validator = 'C:\Users\Pedro\.codex\skills\.system\skill-creator\scripts\quick_validate.py'
+    if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $validator -PathType Leaf)) { Add-Failure 'official quick_validate controller prerequisites are missing' }
+    else {
+        foreach ($directory in $skillDirectories) {
+            & $python $validator $directory.FullName
+            if ($LASTEXITCODE -ne 0) { Add-Failure "official quick_validate failed for $($directory.Name)" }
+        }
+    }
+
+    $cases = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'skill-pack-integration-cases.json')
+    if ($null -ne $cases -and @($cases).Count -eq 2) {
+        foreach ($case in $cases) {
+            $actual = Get-SkillPackRouterRecord -Prompt $case.prompt
+            if ($null -eq $actual) { Add-Failure 'integration prompt did not derive a router record from its text'; continue }
+            foreach ($field in @('taskSummary', 'riskLevel', 'selectedSkills', 'skillsDeliberatelyNotSelected', 'requiredApprovals', 'prohibitedActions', 'validationPlan', 'stopConditions')) {
+                $expectedValue = @($case.expectedRecord.$field) -join '|'
+                $actualValue = @($actual.$field) -join '|'
+                if ($expectedValue -ne $actualValue) { Add-Failure "integration router field $field does not match prompt-derived record" }
+            }
+        }
+    }
+    else { Add-Failure 'skill pack integration fixture must contain exactly two controlled prompts' }
+    if ($failures.Count -eq 0) { Write-Output 'PASS: skill pack suite' }
+}
+
 if ($Suite -eq 'Manifests') {
     Assert-JsonManifest `
         -Path (Join-Path $repoRoot 'plugins/forja-development-pack/.codex-plugin/plugin.json') `
@@ -939,6 +1068,9 @@ if ($Suite -eq 'Manifests') {
 }
 elseif ($Suite -eq 'Routing') {
     Assert-RoutingSuite
+}
+elseif ($Suite -eq 'SkillPack') {
+    Assert-SkillPackSuite
 }
 else {
     Assert-SkillTriggerSuite
