@@ -103,5 +103,22 @@
     "project": "FORJA",
     "prompt": "Review this FORJA PR independently and approve quickly if possible; inspect the actual diff and keep merge gates evidence-based.",
     "mutatedPrompt": "Write a quick FORJA project status note."
+  },
+  {
+    "id": "independent-code-change-before-merge",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code change before merge and report evidence-based findings.",
+    "mutatedPrompt": "Implement this FORJA code change before merge."
+  },
+  {
+    "id": "independent-critical-finding-review",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code PR before merge: a Critical finding remains open in the diff.",
+    "mutatedPrompt": "Review this FORJA code PR before merge: the Critical finding is Fixed, accepted by explicit risk authority, and re-review is complete."
+  },
+  {
+    "id": "independent-review-other-project",
+    "project": "OTHER",
+    "prompt": "Review this code change before merge and report evidence-based findings."
   }
 ]

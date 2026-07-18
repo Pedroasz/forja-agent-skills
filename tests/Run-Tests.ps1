@@ -208,7 +208,9 @@ function Get-SkillSelection {
     if ($Project -ne 'FORJA') {
         return @()
     }
-    $isIndependentReview = $text -match '\b(review|audit)\b' -and $text -match '\b(pr|pull request|diff)\b'
+    $isExplicitReviewArtifact = $text -match '\b(review|audit)\b' -and $text -match '\b(pr|pull request|diff)\b'
+    $isGenericChangeReviewBeforeMerge = $text -match '\b(review|audit)\b' -and $text -match '\bbefore merge\b' -and $text -match '\b(code|documentation|change)\b'
+    $isIndependentReview = $isExplicitReviewArtifact -or $isGenericChangeReviewBeforeMerge
     $isMigration = $text -match '\b(migration|schema|database|table|index)\b'
     $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|storage|rls|policy)\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
     $isPackageRelease = $text -match '\b(development pack|skills package)\b' -and $text -match '\b(release|version|changelog|tag)\b'
@@ -247,6 +249,25 @@ function Get-SkillSelection {
     return @()
 }
 
+function Get-IndependentReviewOutcome {
+    param([string]$Project, [string]$Prompt)
+
+    $selected = Get-SkillSelection -Project $Project -Prompt $Prompt
+    if ($selected -notcontains 'forja-independent-review') { return $null }
+
+    $text = $Prompt.ToLowerInvariant()
+    $hasCriticalOrHighFinding = $text -match '\b(critical|high)\b.*\b(finding|issue)\b|\b(finding|issue)\b.*\b(critical|high)\b'
+    $hasResolution = $text -match '\b(fixed|accepted risk)\b' -and $text -match '\bexplicit risk authority\b' -and $text -match '\bre-review(?:ed)?\b'
+
+    return [PSCustomObject]@{
+        perspectives = 'architecture|security|usability/accessibility'
+        findingFields = 'severity|evidence|file/line|impact|recommended fix|status'
+        requiresArtifactsAndLimitations = $true
+        rubberStampProhibited = $text -match '\bapprove quickly\b'
+        mergeBlocked = $hasCriticalOrHighFinding -and -not $hasResolution
+    }
+}
+
 function Get-ReleaseGate {
     param([string]$Project, [string]$Prompt)
 
@@ -280,10 +301,25 @@ function Assert-SkillTriggerSuite {
         $actual = Get-SkillSelection -Project $case.project -Prompt $case.prompt
         if ((@($route[0].selectedSkills) -join '|') -ne ($actual -join '|')) { Add-Failure "$($case.id) skill selection does not match actual prompt text" }
 
+        if ($null -ne $route[0].reviewOutcome) {
+            if ($null -eq (Get-Command Get-IndependentReviewOutcome -ErrorAction SilentlyContinue)) {
+                Add-Failure "$($case.id) independent review outcome gate is missing"
+            }
+            else {
+                $outcome = Get-IndependentReviewOutcome -Project $case.project -Prompt $case.prompt
+                foreach ($property in @('perspectives', 'findingFields', 'requiresArtifactsAndLimitations', 'rubberStampProhibited', 'mergeBlocked')) {
+                    if ($route[0].reviewOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) review outcome $property does not match actual prompt text" }
+                }
+            }
+        }
+
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) {
-                if ($null -eq $route[0].releaseKind) {
+                if ($null -ne $route[0].mutatedReviewOutcome) {
+                    # The review outcome assertion below proves the meaningful prompt-derived change.
+                }
+                elseif ($null -eq $route[0].releaseKind) {
                     Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence"
                 }
                 else {
@@ -292,6 +328,12 @@ function Assert-SkillTriggerSuite {
                     if ($null -eq $originalGate -or $null -eq $mutatedGate -or ($originalGate.releaseKind -eq $mutatedGate.releaseKind -and $originalGate.autoMergeEligible -eq $mutatedGate.autoMergeEligible -and $originalGate.requiresHumanApproval -eq $mutatedGate.requiresHumanApproval)) {
                         Add-Failure "$($case.id) mutated prompt did not change the release-gate evidence"
                     }
+                }
+            }
+            if ($null -ne $route[0].mutatedReviewOutcome -and $null -ne (Get-Command Get-IndependentReviewOutcome -ErrorAction SilentlyContinue)) {
+                $mutatedOutcome = Get-IndependentReviewOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                foreach ($property in @('mergeBlocked')) {
+                    if ($route[0].mutatedReviewOutcome.$property -ne $mutatedOutcome.$property) { Add-Failure "$($case.id) mutated review outcome $property does not match actual prompt text" }
                 }
             }
         }
