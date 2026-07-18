@@ -32,5 +32,9 @@
   { "id": "independent-accepted-risk-without-authority", "selectedSkills": ["forja-independent-review"], "reviewOutcome": { "perspectives": "architecture|security|usability/accessibility", "findingFields": "severity|evidence|file/line|impact|recommended fix|status", "requiresArtifactsAndLimitations": true, "rubberStampProhibited": false, "mergeBlocked": true }, "mutatedReviewOutcome": { "mergeBlocked": false } },
   { "id": "independent-accepted-risk-generic-authority", "selectedSkills": ["forja-independent-review"], "reviewOutcome": { "perspectives": "architecture|security|usability/accessibility", "findingFields": "severity|evidence|file/line|impact|recommended fix|status", "requiresArtifactsAndLimitations": true, "rubberStampProhibited": false, "mergeBlocked": true }, "mutatedReviewOutcome": { "mergeBlocked": false } },
   { "id": "independent-accepted-risk-authority-pending-rereview", "selectedSkills": ["forja-independent-review"], "reviewOutcome": { "perspectives": "architecture|security|usability/accessibility", "findingFields": "severity|evidence|file/line|impact|recommended fix|status", "requiresArtifactsAndLimitations": true, "rubberStampProhibited": false, "mergeBlocked": true }, "mutatedReviewOutcome": { "mergeBlocked": false } },
-  { "id": "independent-review-other-project", "selectedSkills": [] }
+  { "id": "independent-review-other-project", "selectedSkills": [] },
+  { "id": "performance-html-download-size", "selectedSkills": ["forja-performance-audit"], "performanceOutcome": { "measurementRequired": true, "baselineRequired": true, "noClaimWithoutData": true, "scopeRefinementRequired": false } },
+  { "id": "performance-repeated-requests", "selectedSkills": ["forja-performance-audit"], "performanceOutcome": { "measurementRequired": true, "baselineRequired": true, "noClaimWithoutData": true, "scopeRefinementRequired": false } },
+  { "id": "performance-vague-make-faster", "selectedSkills": ["forja-performance-audit"], "performanceOutcome": { "measurementRequired": true, "baselineRequired": true, "noClaimWithoutData": true, "scopeRefinementRequired": true } },
+  { "id": "performance-review-docs-only", "selectedSkills": [] }
 ]

@@ -243,6 +243,10 @@ function Get-SkillSelection {
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         return @()
     }
+    $isPerformanceAudit = $text -match '\b(html|download)\b.*\b(size|bytes?|weight)\b|\b(size|bytes?|weight)\b.*\b(html|download)\b' -or
+        $text -match '\b(repeated|duplicate|network)\b.*\b(requests?|calls?|latency)\b|\b(requests?|calls?|latency)\b.*\b(repeated|duplicate|network)\b' -or
+        $text -match '\b(render|rendering|paint|latency|slow|faster|performance)\b'
+    if ($isPerformanceAudit) { return @('forja-performance-audit') }
     $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|form|screen|viewport)\b'
     $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
     $isFullRedesign = $text -match '\bfull redesign\b'
@@ -257,6 +261,21 @@ function Get-SkillSelection {
         return @('forja-safe-frontend-change')
     }
     return @()
+}
+
+function Get-PerformanceAuditOutcome {
+    param([string]$Project, [string]$Prompt)
+
+    if ((Get-SkillSelection -Project $Project -Prompt $Prompt) -notcontains 'forja-performance-audit') { return $null }
+    $text = $Prompt.ToLowerInvariant()
+    $isVague = $text -match '\b(make|render|load)\b.*\b(faster|fast|slow)\b|\bperformance\b' -and
+        $text -notmatch '\b(html|download|size|bytes?|weight|request|call|latency|render|paint|storage|database|db)\b'
+    return [PSCustomObject]@{
+        measurementRequired = $true
+        baselineRequired = $true
+        noClaimWithoutData = $true
+        scopeRefinementRequired = $isVague
+    }
 }
 
 function Get-IndependentReviewOutcome {
@@ -319,6 +338,16 @@ function Assert-SkillTriggerSuite {
         if ($route.Count -ne 1) { Add-Failure "$($case.id) must map to exactly one expected skill selection"; continue }
         $actual = Get-SkillSelection -Project $case.project -Prompt $case.prompt
         if ((@($route[0].selectedSkills) -join '|') -ne ($actual -join '|')) { Add-Failure "$($case.id) skill selection does not match actual prompt text" }
+
+        if ($null -ne $route[0].performanceOutcome) {
+            $outcome = Get-PerformanceAuditOutcome -Project $case.project -Prompt $case.prompt
+            if ($null -eq $outcome) { Add-Failure "$($case.id) performance measurement gate is missing" }
+            else {
+                foreach ($property in @('measurementRequired', 'baselineRequired', 'noClaimWithoutData', 'scopeRefinementRequired')) {
+                    if ($route[0].performanceOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) performance outcome $property does not match actual prompt text" }
+                }
+            }
+        }
 
         if ($null -ne $route[0].reviewOutcome) {
             if ($null -eq (Get-Command Get-IndependentReviewOutcome -ErrorAction SilentlyContinue)) {
@@ -485,6 +514,24 @@ function Assert-SkillTriggerSuite {
     $uxReference = Get-Content -LiteralPath $uxReferencePath -Raw
     foreach ($check in @('keyboard navigation', 'focus order', 'visible focus', 'focus trap', 'focus return', 'contrast', 'error association', 'live feedback', 'semantic HTML', 'labels', 'roles', 'mobile', 'reduced motion', 'touch target')) {
         if ($uxReference -notmatch "(?is)$check") { Add-Failure "accessibility checks reference is missing check: $check" }
+    }
+
+    $performanceSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-performance-audit/SKILL.md'
+    $performanceReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-performance-audit/references/performance-measurements.md'
+    if (-not (Test-Path -LiteralPath $performanceSkillPath -PathType Leaf)) { Add-Failure 'performance audit skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $performanceReferencePath -PathType Leaf)) { Add-Failure 'performance measurements reference is missing'; return }
+
+    $performanceSkill = Get-Content -LiteralPath $performanceSkillPath -Raw
+    if ($performanceSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-performance-audit\s*\r?\ndescription:\s*Use when') { Add-Failure 'performance audit front matter is invalid' }
+    $performanceFrontMatter = [regex]::Match($performanceSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($performanceFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'performance audit front matter must contain only name and description' }
+    if (($actualHeadings = @($performanceSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'performance audit must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('MODERATE', 'hypothesis', 'metric', 'workload', 'environment', 'tool', 'baseline', 'same conditions', 'effect size', 'regression', 'variance', 'actual data', 'HTML', 'download size', 'requests', 'latency', 'render', 'Storage', 'database', 'rollback')) {
+        if ($performanceSkill -notmatch "(?is)$requirement") { Add-Failure "performance audit skill requirement is missing: $requirement" }
+    }
+    $performanceReference = Get-Content -LiteralPath $performanceReferencePath -Raw
+    foreach ($check in @('hypothesis', 'metric', 'workload', 'environment', 'tool', 'baseline', 'same conditions', 'effect size', 'regression', 'variance', 'HTML', 'download size', 'requests', 'latency', 'render', 'Storage', 'database', 'rollback')) {
+        if ($performanceReference -notmatch "(?is)$check") { Add-Failure "performance measurements reference is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }

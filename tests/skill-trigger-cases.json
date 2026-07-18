@@ -195,5 +195,28 @@
     "id": "independent-review-other-project",
     "project": "OTHER",
     "prompt": "Review this code change before merge and report evidence-based findings."
+  },
+  {
+    "id": "performance-html-download-size",
+    "project": "FORJA",
+    "prompt": "Measure the FORJA HTML download size before reducing it.",
+    "mutatedPrompt": "Document the FORJA performance review in the README."
+  },
+  {
+    "id": "performance-repeated-requests",
+    "project": "FORJA",
+    "prompt": "Audit repeated network requests and latency in the FORJA dashboard.",
+    "mutatedPrompt": "Update the FORJA README with repeated network request guidance."
+  },
+  {
+    "id": "performance-vague-make-faster",
+    "project": "FORJA",
+    "prompt": "Make the FORJA dashboard faster.",
+    "mutatedPrompt": "Update the FORJA dashboard documentation."
+  },
+  {
+    "id": "performance-review-docs-only",
+    "project": "FORJA",
+    "prompt": "Update the FORJA performance review documentation in the README."
   }
 ]
