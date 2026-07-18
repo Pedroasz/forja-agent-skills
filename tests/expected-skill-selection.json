@@ -6,11 +6,11 @@
   { "id": "ux-full-redesign-anti-trigger", "selectedSkills": [] },
   { "id": "ux-observable-ui-with-backend-context", "selectedSkills": ["forja-ux-accessibility"] },
   { "id": "backend-only-task", "selectedSkills": [] },
-  { "id": "project-focus-docs", "selectedSkills": [] },
-  { "id": "modal-documentation", "selectedSkills": [] },
+  { "id": "project-focus-docs", "selectedSkills": ["forja-documentation"] },
+  { "id": "modal-documentation", "selectedSkills": ["forja-documentation"] },
   { "id": "button-change", "selectedSkills": ["forja-safe-frontend-change"] },
   { "id": "mobile-navigation", "selectedSkills": ["forja-safe-frontend-change"] },
-  { "id": "docs-only-edit", "selectedSkills": [] },
+  { "id": "docs-only-edit", "selectedSkills": ["forja-documentation"] },
   { "id": "login-bug", "selectedSkills": ["forja-auth-storage-safety"] },
   { "id": "profile-copy", "selectedSkills": [] },
   { "id": "auth-tenant-profile-mixed", "selectedSkills": ["forja-auth-storage-safety"] },
@@ -51,5 +51,10 @@
   { "id": "test-strategy-non-strategy", "selectedSkills": [] },
   { "id": "test-strategy-release", "selectedSkills": ["forja-release-pipeline", "forja-test-strategy"], "releaseKind": "SAAS_FUNCTIONAL", "riskLevel": "HIGH", "autoMergeEligible": false, "requiresHumanApproval": true, "testStrategyOutcome": { "risk": "HIGH", "matrix": "static|content|manifest|unit|integration|browser|desktop|mobile|navigation", "productionGate": "NOT_APPLICABLE" }, "mutatedTestStrategyOutcome": { "risk": "LOW", "matrix": "static|content|manifest", "productionGate": "NOT_APPLICABLE" } },
   { "id": "test-strategy-production-gate", "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety", "forja-test-strategy"], "testStrategyOutcome": { "risk": "HIGH", "matrix": "static|sql|integration|local-migration|authenticated-actor|rls|tenant", "productionGate": "NON_MUTATING_OBSERVATION" }, "mutatedTestStrategyOutcome": { "risk": "HIGH", "matrix": "static|sql|integration|local-migration|authenticated-actor|rls|tenant", "productionGate": "AUTHORIZED_EXECUTION_REQUIRED" } },
-  { "id": "performance-review-docs-only", "selectedSkills": [] }
+  { "id": "performance-review-docs-only", "selectedSkills": ["forja-documentation"] },
+  { "id": "documentation-adr-evidence", "selectedSkills": ["forja-documentation"], "documentationOutcome": { "evidenceCompleteness": true, "confirmationScope": "LOCAL_ARTIFACT" }, "mutatedDocumentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "LOCAL_ARTIFACT" } },
+  { "id": "documentation-drive-report-evidence", "selectedSkills": ["forja-documentation"], "documentationOutcome": { "evidenceCompleteness": true, "confirmationScope": "DRIVE" }, "mutatedDocumentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "DRIVE" } },
+  { "id": "documentation-evidence-source-mutation", "selectedSkills": ["forja-documentation"], "documentationOutcome": { "evidenceCompleteness": true, "confirmationScope": "LOCAL_ARTIFACT" }, "mutatedDocumentationOutcome": { "evidenceCompleteness": false, "confirmationScope": "LOCAL_ARTIFACT" } },
+  { "id": "documentation-id-not-routing", "selectedSkills": [] },
+  { "id": "documentation-academic-anti-trigger", "selectedSkills": [] }
 ]

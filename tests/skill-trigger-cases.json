@@ -304,5 +304,33 @@
     "id": "performance-review-docs-only",
     "project": "FORJA",
     "prompt": "Update the FORJA performance review documentation in the README."
+  },
+  {
+    "id": "documentation-adr-evidence",
+    "project": "FORJA",
+    "prompt": "Write a FORJA ADR. Evidence source: git log. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the reviewed local artifact.",
+    "mutatedPrompt": "Write a FORJA ADR. Evidence source: git log. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. The reviewed local artifact is ready."
+  },
+  {
+    "id": "documentation-drive-report-evidence",
+    "project": "FORJA",
+    "prompt": "Prepare a FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata.",
+    "mutatedPrompt": "Prepare a FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata."
+  },
+  {
+    "id": "documentation-evidence-source-mutation",
+    "project": "FORJA",
+    "prompt": "Write a FORJA ADR. Evidence source: git log. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the local artifact.",
+    "mutatedPrompt": "Write a FORJA ADR. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the local artifact."
+  },
+  {
+    "id": "documentation-id-not-routing",
+    "project": "FORJA",
+    "prompt": "FORJA folder ID: folder-42; file ID: file-42."
+  },
+  {
+    "id": "documentation-academic-anti-trigger",
+    "project": "OTHER",
+    "prompt": "Edit this academic essay for clarity and citations."
   }
 ]

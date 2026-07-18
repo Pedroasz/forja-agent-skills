@@ -255,9 +255,9 @@ function Get-SkillSelection {
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         return $selection
     }
-    if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
+    if ($text -match '\b(documentation|readme|adr|docs-only|report|runbook|changelog|evidence)\b') {
         if ($isTestStrategy) { return @('forja-test-strategy') }
-        return @()
+        return @('forja-documentation')
     }
     if ($isPerformanceAudit) {
         $selection = @('forja-performance-audit')
@@ -433,11 +433,21 @@ function Assert-SkillTriggerSuite {
             }
         }
 
+        if ($null -ne $route[0].documentationOutcome) {
+            $outcome = Get-DocumentationEvidenceOutcome -Project $case.project -Prompt $case.prompt
+            foreach ($property in @('evidenceCompleteness', 'confirmationScope')) {
+                if ($route[0].documentationOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) documentation outcome $property does not match actual prompt evidence" }
+            }
+        }
+
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) {
                 if ($null -ne $route[0].mutatedReviewOutcome -or ($route[0].PSObject.Properties.Name -contains 'mutatedPerformanceOutcome') -or ($route[0].PSObject.Properties.Name -contains 'mutatedTestStrategyOutcome')) {
                     # The review outcome assertion below proves the meaningful prompt-derived change.
+                }
+                elseif ($route[0].PSObject.Properties.Name -contains 'mutatedDocumentationOutcome') {
+                    # Documentation mutations intentionally preserve routing while reducing evidence completeness.
                 }
                 elseif ($null -eq $route[0].releaseKind) {
                     Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence"
@@ -477,6 +487,12 @@ function Assert-SkillTriggerSuite {
                     foreach ($property in @('risk', 'matrix', 'productionGate')) {
                         if ($route[0].mutatedTestStrategyOutcome.$property -ne $mutatedTestStrategyOutcome.$property) { Add-Failure "$($case.id) mutated test strategy outcome $property does not match actual prompt text" }
                     }
+                }
+            }
+            if ($route[0].PSObject.Properties.Name -contains 'mutatedDocumentationOutcome') {
+                $mutatedDocumentationOutcome = Get-DocumentationEvidenceOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                foreach ($property in @('evidenceCompleteness', 'confirmationScope')) {
+                    if ($route[0].mutatedDocumentationOutcome.$property -ne $mutatedDocumentationOutcome.$property) { Add-Failure "$($case.id) mutated documentation outcome $property does not match actual prompt evidence" }
                 }
             }
             if ($route[0].PSObject.Properties.Name -contains 'mutatedForbiddenMatrixEntries') {
@@ -653,7 +669,46 @@ function Assert-SkillTriggerSuite {
         if ($testStrategyReference -notmatch "(?is)$check") { Add-Failure "test matrix reference is missing check: $check" }
     }
 
+    $documentationSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-documentation/SKILL.md'
+    $documentationReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-documentation/references/evidence-schema.md'
+    if (-not (Test-Path -LiteralPath $documentationSkillPath -PathType Leaf)) { Add-Failure 'documentation skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $documentationReferencePath -PathType Leaf)) { Add-Failure 'documentation evidence schema is missing'; return }
+
+    $documentationSkill = Get-Content -LiteralPath $documentationSkillPath -Raw
+    if ($documentationSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-documentation\s*\r?\ndescription:\s*Use when') { Add-Failure 'documentation front matter is invalid' }
+    $documentationFrontMatter = [regex]::Match($documentationSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($documentationFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'documentation front matter must contain only name and description' }
+    if (($actualHeadings = @($documentationSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'documentation must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('LOW', 'executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'unsupported conclusions', 'secret', 'credential', 'PII', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'post-upload', 'reread', 'deletion', 'overwrite')) {
+        if ($documentationSkill -notmatch "(?is)$requirement") { Add-Failure "documentation skill requirement is missing: $requirement" }
+    }
+    $documentationReference = Get-Content -LiteralPath $documentationReferencePath -Raw
+    foreach ($check in @('executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'reread', 'secret', 'credential', 'PII')) {
+        if ($documentationReference -notmatch "(?is)$check") { Add-Failure "documentation evidence schema is missing check: $check" }
+    }
+
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
+}
+
+function Get-DocumentationEvidenceOutcome {
+    param(
+        [string]$Project,
+        [string]$Prompt
+    )
+
+    $text = $Prompt.ToLowerInvariant()
+    if ($Project -ne 'FORJA') { return [PSCustomObject]@{ evidenceCompleteness = $false; confirmationScope = 'NOT_FORJA' } }
+
+    $hasSource = $text -match '(evidence source:|git log|drive connector)'
+    $hasCheck = $text -match '(command:|check:|reread)'
+    $hasTimestamp = $text -match 'timestamp:'
+    $hasCommitHash = $text -match 'commit\s+[0-9a-f]{7,40}'
+    $isDrive = $text -match '\bdrive\b'
+    if ($isDrive) {
+        $hasDriveMetadata = $text -match 'folder id:\s*[a-z0-9_-]+' -and $text -match 'file id:\s*[a-z0-9_-]+' -and $text -match 'size:' -and $text -match 'modified:' -and $text -match '(post-upload reread|reread after upload)'
+        return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasDriveMetadata); confirmationScope = 'DRIVE' }
+    }
+    return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasCommitHash); confirmationScope = 'LOCAL_ARTIFACT' }
 }
 
 if ($Suite -eq 'Manifests') {
