@@ -411,6 +411,35 @@
     "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
   },
   {
+    "id": "incident-execute-destructive-production-action-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. execute destructive production action.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-delete-production-data-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. delete production data.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-drop-truncate-production-data-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. drop and truncate production data.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-purge-production-logs-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. purge production logs.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-no-delete-evidence-plan-allows-containment",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. do not delete production data while preserving evidence."
+  },
+  {
     "id": "documentation-academic-anti-trigger",
     "project": "OTHER",
     "prompt": "Edit this academic essay for clarity and citations."

@@ -27,7 +27,7 @@ Entregue `incidentState`, `risk`, `sequence`, `executionAllowed` e `evidencePres
 
 ## Risk classification
 
-Incidente confirmado, outage, data loss ou production error é **CRITICAL**; o maior risco prevalece. `executionAllowed` só pode ser verdadeiro para `authorized reversible containment`, com evidência integral preservada e explicit incident authority estruturada. Cleanup, restart, destructive fix e production mutation permanecem proibidos por este gate, mesmo quando ele estiver verdadeiro; exigem autorização específica separada e plano de reversão. Não execute rollback ou recovery sem explicit incident authority, plano de reversão e escopo aprovado.
+Incidente confirmado, outage, data loss ou production error é **CRITICAL**; o maior risco prevalece. `executionAllowed` só pode ser verdadeiro para `authorized reversible containment`, com evidência integral preservada e explicit incident authority estruturada. Cleanup, restart, destructive fix, production mutation e qualquer ação destrutiva sobre production data ou logs — delete, drop, truncate, purge, wipe, erase, remove/removal — permanecem proibidos por este gate, mesmo quando ele estiver verdadeiro; exigem autorização específica separada e plano de reversão. Não execute rollback ou recovery sem explicit incident authority, plano de reversão e escopo aprovado.
 
 ## Workflow
 
@@ -35,7 +35,7 @@ Leia [incident-runbook.md](references/incident-runbook.md) e siga, nesta ordem: 
 
 ## Required checks
 
-Antes de qualquer correção, confirme timestamp ISO-8601, hash ou snapshot não-placeholder, log reference não-placeholder, chain com trilha e owner identificado. Faça no log deletion, cleanup, restart, destructive fix ou production mutation antes da preservação e da explicit incident authority. Verifique que a contenção é reversível, que `executionAllowed` depende de todos esses checks e de autoridade estruturada, que o status não promete além da evidência, e que toda correção aprovada possui rollback/recovery handoff e critério de verify.
+Antes de qualquer correção, confirme timestamp ISO-8601, hash ou snapshot não-placeholder, log reference não-placeholder, chain com trilha e owner identificado. Faça no log deletion, cleanup, restart, destructive fix, delete, drop, truncate, purge, wipe, erase, removal de production data/logs ou production mutation antes da preservação e da explicit incident authority. Verifique a intenção da ação, não menções negativas como `do not delete` em um plano de evidências. Verifique que a contenção é reversível, que `executionAllowed` depende de todos esses checks e de autoridade estruturada, que o status não promete além da evidência, e que toda correção aprovada possui rollback/recovery handoff e critério de verify.
 
 ## Stop conditions
 

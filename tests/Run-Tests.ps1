@@ -368,7 +368,9 @@ function Get-IncidentResponseOutcome {
     $hasStructuredAuthority = $authorityValue -notmatch "(?i)^$placeholder$" -and $authorityValue -match '(?i)\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+|director|manager|officer|owner|lead|commander|[A-Z]{2,}[-_]\d+)\b'
     $hasEvidence = $hasTimestamp -and $hasArtifactReference -and $hasLogReference -and $hasChainTrail -and $hasIdentifiedOwner
     $isAuthorizedReversibleContainment = $text -match '\bauthorized reversible containment\b'
-    $hasUnsafeAction = $text -match '\b(log deletion|cleanup|restart|destructive fix|production mutation)\b'
+    $actionText = [regex]::Replace($text, '\b(?:do not|don''t|no)\s+(?:delete|drop|truncate|purge|wipe|erase|remove|removal|destructive)\b[^.;]*', '')
+    $hasGenericDestructiveAction = $actionText -match '\b(?:execute|run|perform|apply)\b.{0,80}\b(?:destructive|delete|drop|truncate|purge|wipe|erase|remove|removal)\b' -or $actionText -match '\b(?:delete|drop|truncate|purge|wipe|erase|remove|removal)\b.{0,80}\b(?:production|prod|data|logs?)\b' -or $actionText -match '\bdestructive\s+(?:production\s+)?action\b'
+    $hasUnsafeAction = $text -match '\b(log deletion|cleanup|restart|destructive fix|production mutation)\b' -or $hasGenericDestructiveAction
     if ($isHypothetical) {
         return [PSCustomObject]@{ incidentState = 'HYPOTHETICAL'; risk = 'CRITICAL'; sequence = $sequence; executionAllowed = $false; evidencePreserved = $false }
     }
