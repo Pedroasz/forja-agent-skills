@@ -2,17 +2,17 @@
 
 ## Gate de planejamento
 
-1. Validar environment, source, target e minimum scope.
+1. Validar campos por linha: `requested environment`, `requested action`, `requested scope`, `source`, `target` e `minimum scope`; normalizar valores, rejeitar placeholders e exigir source diferente de target.
 2. Aplicar `copy-first`: registrar `immutable snapshot` e `backup reference` nao-placeholder antes de qualquer mutacao.
 3. Fazer somente simulation `read-only` ou `dry-run`; planning-only nunca executa restore ou rollback.
 4. Registrar row, object ou file count e checksum before/after para o mesmo conjunto.
 5. Preparar `rollback-of-recovery` antes da autorizacao.
-6. Exigir `specific authorization` estruturada: environment, action e scope exatos.
+6. Exigir `authorization environment`, `authorization action` e `authorization scope` estruturados e exatamente iguais aos campos requested; substring nao basta.
 7. Executar somente quando o gate inteiro estiver verdadeiro; fazer `post-verify` e preservar evidencia.
 
 ## Limites de escopo
 
-Cache: nomear key ou namespace; nunca permitir que um cache rollback autorize restore amplo de data. Banco: nomear row/chave/tenant; migration recovery exige composition com migration, incident ou authorization aplicaveis. Storage: nomear object/file e caminho. Source e target devem ser validados e distintos; nao inventar IDs.
+Cache: nomear key ou namespace; nunca permitir que um cache rollback autorize restore amplo de data. Banco: nomear row/chave/tenant; migration recovery exige composition com migration, incident ou authorization aplicaveis. Storage: nomear object/file e caminho. `minimum scope` deve corresponder exatamente a `requested scope` ou ser comprovadamente menor; rejeite all data, database/table/tenant inteiro ou full, wildcard, e todos os records/rows/files/objects/cache. Source e target devem ser validados e distintos; nao inventar IDs.
 
 ## Bloqueios
 

@@ -316,25 +316,45 @@ function Get-DataRecoveryOutcome {
     }
     $hasImmutableSnapshot = & $hasValue 'immutable snapshot'
     $hasBackupReference = & $hasValue 'backup reference'
-    $hasSource = & $hasValue 'source'
-    $hasTarget = & $hasValue 'target'
+    $readStructuredField = {
+        param([string]$Label)
+        $match = [regex]::Match($Prompt, "(?im)^\s*$([regex]::Escape($Label))\s*:\s*([^\r\n]+?)\s*$")
+        if (-not $match.Success) { return $null }
+        $value = [regex]::Replace($match.Groups[1].Value.Trim().ToLowerInvariant(), '\s+', ' ')
+        if ($value -match "^(?:$placeholder)$") { return $null }
+        return $value
+    }
+    $requestedEnvironment = & $readStructuredField 'requested environment'
+    $requestedAction = & $readStructuredField 'requested action'
+    $requestedScope = & $readStructuredField 'requested scope'
+    $source = & $readStructuredField 'source'
+    $target = & $readStructuredField 'target'
+    $minimumScopeValue = & $readStructuredField 'minimum scope'
+    $authorizationEnvironment = & $readStructuredField 'authorization environment'
+    $authorizationAction = & $readStructuredField 'authorization action'
+    $authorizationScope = & $readStructuredField 'authorization scope'
+    $hasRequestedOperation = -not [string]::IsNullOrWhiteSpace($requestedEnvironment) -and -not [string]::IsNullOrWhiteSpace($requestedAction) -and -not [string]::IsNullOrWhiteSpace($requestedScope)
+    $hasDistinctSourceTarget = -not [string]::IsNullOrWhiteSpace($source) -and -not [string]::IsNullOrWhiteSpace($target) -and $source -ne $target
+    $hasMinimumScope = ($text -match '\bminimum scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and -not ($text -match '\bminimum scope\s*:\s*(?:all data|entire\s+(?:database|table|tenant)|full\s+(?:database|table|tenant)|all\s+(?:records?|rows?|files?|objects?|cache)|\*)')
+    $isBroadScope = -not [string]::IsNullOrWhiteSpace($minimumScopeValue) -and ($minimumScopeValue -match '\*|\ball data\b|\bentire\s+(?:database|table|tenant)\b|\bfull\s+(?:database|table|tenant)\b|\ball\s+(?:records?|rows?|files?|objects?|cache)\b')
+    $minimumScopeBound = $hasRequestedOperation -and -not [string]::IsNullOrWhiteSpace($minimumScopeValue) -and -not $isBroadScope -and $minimumScopeValue -eq $requestedScope
     $hasBeforeCount = $text -match '(?im)\bbefore\s+(?:row\s+|object\s+|file\s+)?count\s*:\s*\d+'
     $hasAfterCount = $text -match '(?im)\bafter\s+(?:row\s+|object\s+|file\s+)?count\s*:\s*\d+'
     $hasBeforeChecksum = & $hasValue 'before checksum'
     $hasAfterChecksum = & $hasValue 'after checksum'
-    $hasAuthorization = $text -match '(?is)\bspecific authorization\s*:\s*environment\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[a-z0-9][a-z0-9._:/-]{3,}\s*;\s*action\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^;\r\n]{4,}\s*;\s*scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{4,}'
+    $hasAuthorization = $hasRequestedOperation -and -not [string]::IsNullOrWhiteSpace($authorizationEnvironment) -and -not [string]::IsNullOrWhiteSpace($authorizationAction) -and -not [string]::IsNullOrWhiteSpace($authorizationScope) -and $authorizationEnvironment -eq $requestedEnvironment -and $authorizationAction -eq $requestedAction -and $authorizationScope -eq $requestedScope
     $isPlanningOnly = $text -match '\b(plan|planning|hypothetically|hypothetical|do not execute)\b'
     $actionText = [regex]::Replace($text, '\b(?:do not|don''t|no)\s+(?:delete|drop|truncate|purge|wipe|erase|remove|destroy)\b[^.;]*', '')
-    $hasDestructiveIntent = $actionText -match '\b(delete|drop|truncate|purge|wipe|erase|remove|destroy)\b.{0,80}\b(backups?|data|files?|objects?|production)\b|\b(delete|drop|truncate|purge|wipe|erase|remove|destroy)\s+all\b'
+    $hasDestructiveIntent = $actionText -match '\b(delete|drop|truncate|purge|wipe|erase|remove|destroy)\b.{0,80}\b(backups?|data|files?|objects?|production|records?|rows?|tables?|database|cache)\b|\b(delete|drop|truncate|purge|wipe|erase|remove|destroy)\s+all\b'
 
     return [PSCustomObject]@{
         risk = 'CRITICAL'
         copyPreserved = ($text -match '\bcopy-first\b') -and $hasImmutableSnapshot -and $hasBackupReference
         simulationPassed = $text -match '\bread-only\s+dry-run\s+passed\b'
-        minimumScope = $text -match '\bminimum scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}'
+        minimumScope = $hasMinimumScope
         countsChecksums = $hasBeforeCount -and $hasAfterCount -and $hasBeforeChecksum -and $hasAfterChecksum
         authorizationSpecific = $hasAuthorization
-        executionAllowed = (($text -match '\bcopy-first\b') -and $hasImmutableSnapshot -and $hasBackupReference -and $hasSource -and $hasTarget -and ($text -match '\bread-only\s+dry-run\s+passed\b') -and ($text -match '\bminimum scope\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and $hasBeforeCount -and $hasAfterCount -and $hasBeforeChecksum -and $hasAfterChecksum -and $hasAuthorization -and ($text -match '\brollback-of-recovery\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and ($text -match '\bpost-verify\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and -not $isPlanningOnly -and -not $hasDestructiveIntent)
+        executionAllowed = (($text -match '\bcopy-first\b') -and $hasImmutableSnapshot -and $hasBackupReference -and $hasDistinctSourceTarget -and ($text -match '\bread-only\s+dry-run\s+passed\b') -and $minimumScopeBound -and $hasBeforeCount -and $hasAfterCount -and $hasBeforeChecksum -and $hasAfterChecksum -and $hasAuthorization -and ($text -match '\brollback-of-recovery\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and ($text -match '\bpost-verify\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}') -and -not $isPlanningOnly -and -not $hasDestructiveIntent)
         postVerify = $text -match '\bpost-verify\s*:\s*(?!' + $placeholder + '(?:\.|\s|;|$))[^.\r\n]{3,}'
     }
 }
