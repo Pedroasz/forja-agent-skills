@@ -75,6 +75,44 @@ function Read-JsonFixture {
     }
 }
 
+function Get-RoutingOutcome {
+    param(
+        [string]$Project,
+        [string]$Prompt
+    )
+
+    $text = $Prompt.ToLowerInvariant()
+    if ($Project -ne 'FORJA') {
+        return [PSCustomObject]@{
+            riskLevel = 'NONE'; selectedSkills = @(); requiredApprovals = @(); prohibitedActions = @(); stop = $false
+        }
+    }
+    if ($text -match '\bproduction\b' -and $text -match '\b(delete|destructive)\b') {
+        return [PSCustomObject]@{
+            riskLevel = 'CRITICAL'; selectedSkills = @('forja-incident-response'); requiredApprovals = @('Require explicit incident authority before any production action.'); prohibitedActions = @('Do not delete production data or execute destructive production commands.'); stop = $true
+        }
+    }
+    if ($text -match '\b(rls|migration|policy|schema|authentication|storage|workspace)\b') {
+        return [PSCustomObject]@{
+            riskLevel = 'HIGH'; selectedSkills = @('forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy'); requiredApprovals = @('Obtain approval before migration execution or SaaS merge.'); prohibitedActions = @('Do not edit applied migrations or execute remote database commands.'); stop = $false
+        }
+    }
+    if ($text -match '\b(dashboard|button|navigation|frontend|ui|form|accessibility|performance)\b') {
+        return [PSCustomObject]@{
+            riskLevel = 'MODERATE'; selectedSkills = @('forja-safe-frontend-change', 'forja-test-strategy'); requiredApprovals = @('Obtain approval before any FORJA SaaS merge.'); prohibitedActions = @('Do not alter unrelated SaaS behavior.'); stop = $false
+        }
+    }
+    if ($text -match '\b(readme|adr|documentation|evidence)\b') {
+        return [PSCustomObject]@{
+            riskLevel = 'LOW'; selectedSkills = @('forja-documentation'); requiredApprovals = @(); prohibitedActions = @('Do not claim validation that was not performed.'); stop = $false
+        }
+    }
+
+    return [PSCustomObject]@{
+        riskLevel = 'UNCLASSIFIED'; selectedSkills = @(); requiredApprovals = @(); prohibitedActions = @(); stop = $true
+    }
+}
+
 function Assert-RoutingSuite {
     $cases = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'trigger-cases.json')
     $routes = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'expected-routes.json')
@@ -82,32 +120,34 @@ function Assert-RoutingSuite {
         return
     }
 
-    $expected = @{
-        'readme-update' = @{ risk = 'LOW'; selected = @('forja-documentation'); stop = $false }
-        'frontend-change' = @{ risk = 'MODERATE'; selected = @('forja-safe-frontend-change', 'forja-test-strategy'); stop = $false }
-        'rls-migration' = @{ risk = 'HIGH'; selected = @('forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy'); stop = $false }
-        'destructive-production' = @{ risk = 'CRITICAL'; selected = @('forja-incident-response'); stop = $true }
-        'other-project' = @{ risk = 'NONE'; selected = @(); stop = $false }
-    }
-
     $caseIds = @($cases | ForEach-Object { $_.id })
     $routeIds = @($routes | ForEach-Object { $_.id })
-    foreach ($id in $expected.Keys) {
+    $knownIds = @('readme-update', 'frontend-change', 'rls-migration', 'destructive-production', 'other-project')
+    if ($caseIds.Count -ne 5 -or (@($caseIds | Select-Object -Unique).Count -ne 5)) { Add-Failure 'routing cases must contain exactly five unique cases' }
+    if ($routeIds.Count -ne 5 -or (@($routeIds | Select-Object -Unique).Count -ne 5)) { Add-Failure 'expected routes must contain exactly five unique routes' }
+    foreach ($id in $knownIds) {
         if ($caseIds -notcontains $id) { Add-Failure "routing case is missing: $id" }
         if ($routeIds -notcontains $id) { Add-Failure "expected route is missing: $id" }
     }
+    foreach ($id in @($caseIds + $routeIds | Select-Object -Unique)) {
+        if ($knownIds -notcontains $id) { Add-Failure "routing fixture has an unknown case: $id" }
+    }
 
-    foreach ($route in $routes) {
-        if (-not $expected.ContainsKey($route.id)) {
-            Add-Failure "unexpected expected route: $($route.id)"
+    foreach ($case in $cases) {
+        if ([string]::IsNullOrWhiteSpace($case.project) -or [string]::IsNullOrWhiteSpace($case.prompt)) {
+            Add-Failure "$($case.id) has incomplete routing input"
             continue
         }
+        $route = @($routes | Where-Object { $_.id -eq $case.id })
+        if ($route.Count -ne 1) { Add-Failure "$($case.id) must map to exactly one expected route"; continue }
 
-        $rule = $expected[$route.id]
-        if ($route.riskLevel -ne $rule.risk) { Add-Failure "$($route.id) has incorrect risk level" }
-        if ([bool]$route.stop -ne $rule.stop) { Add-Failure "$($route.id) has incorrect stop condition" }
-        if ((@($route.selectedSkills) -join '|') -ne ($rule.selected -join '|')) { Add-Failure "$($route.id) has incorrect selected skills" }
-        if ($null -eq $route.requiredApprovals -or $null -eq $route.prohibitedActions) { Add-Failure "$($route.id) is missing approval or prohibition data" }
+        $derived = Get-RoutingOutcome -Project $case.project -Prompt $case.prompt
+        if ($derived.riskLevel -eq 'UNCLASSIFIED') { Add-Failure "$($case.id) does not contain a contract routing signal"; continue }
+        if ($route[0].riskLevel -ne $derived.riskLevel) { Add-Failure "$($case.id) risk does not match prompt signals" }
+        if ((@($route[0].selectedSkills) -join '|') -ne ($derived.selectedSkills -join '|')) { Add-Failure "$($case.id) selected skills do not match prompt signals" }
+        if ((@($route[0].requiredApprovals) -join '|') -ne ($derived.requiredApprovals -join '|')) { Add-Failure "$($case.id) approvals do not match prompt risk" }
+        if ((@($route[0].prohibitedActions) -join '|') -ne ($derived.prohibitedActions -join '|')) { Add-Failure "$($case.id) prohibited actions do not match prompt risk" }
+        if ([bool]$route[0].stop -ne $derived.stop) { Add-Failure "$($case.id) stop condition does not match prompt risk" }
     }
 
     $skillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-task-router/SKILL.md'
@@ -120,6 +160,13 @@ function Assert-RoutingSuite {
     if ($skill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-task-router\s*\r?\ndescription:\s*Use when classifying FORJA tasks') {
         Add-Failure 'task router front matter is invalid or lacks the FORJA classification trigger'
     }
+
+    $sectionHeadings = @(
+        'Purpose', 'Trigger conditions', 'Do not trigger when', 'Required inputs', 'Expected outputs', 'Risk classification',
+        'Workflow', 'Required checks', 'Stop conditions', 'Failure recovery', 'Handoff or next skills', 'Completion evidence'
+    )
+    $actualHeadings = @($skill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) })
+    if (($actualHeadings -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'task router must contain exactly the required twelve H2 sections' }
 
     $fields = @(
         'Task summary',
