@@ -905,43 +905,119 @@ function Get-DocumentationEvidenceOutcome {
 }
 
 function Get-SkillPackRouterRecord {
-    param([string]$Prompt)
-
-    $text = $Prompt.ToLowerInvariant()
-    $allSkills = @(
-        'forja-auth-storage-safety', 'forja-data-recovery', 'forja-documentation', 'forja-incident-response',
-        'forja-independent-review', 'forja-performance-audit', 'forja-release-pipeline', 'forja-safe-frontend-change',
-        'forja-supabase-migration', 'forja-test-strategy', 'forja-ux-accessibility'
+    param(
+        [string]$Project,
+        [string]$Prompt
     )
-    $isIncidentRecovery = $text -match '\bconfirmed\b' -and $text -match '\bproduction outage\b' -and $text -match '\b(suspected data loss|restore)\b'
-    $isModalRls = $text -match '\bmodal dialog\b' -and $text -match '\b(rls|row level security)\b' -and $text -match '\bmigration\b'
-    if ($isModalRls) {
-        $selected = @('forja-safe-frontend-change', 'forja-ux-accessibility', 'forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy')
-        return [PSCustomObject]@{
-            taskSummary = 'Scoped FORJA modal accessibility change plus an incremental RLS migration.'
-            riskLevel = 'HIGH'
-            selectedSkills = $selected
-            skillsDeliberatelyNotSelected = @($allSkills | Where-Object { $_ -notin $selected })
-            requiredApprovals = @('Require approval before migration execution or FORJA SaaS merge.')
-            prohibitedActions = @('Do not execute remote database commands, production actions, or an unapproved SaaS merge.')
-            validationPlan = @('Validate modal keyboard, focus-return, and semantic behavior; run local incremental migration plus authenticated RLS tenant-isolation tests.')
-            stopConditions = @('Stop before remote database commands, production execution, or SaaS merge.')
-        }
+
+    if ($Project -ne 'FORJA') { return $null }
+    $text = $Prompt.ToLowerInvariant()
+    $downstreamSkills = @(
+        'forja-incident-response', 'forja-data-recovery', 'forja-safe-frontend-change', 'forja-ux-accessibility',
+        'forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy', 'forja-documentation',
+        'forja-performance-audit', 'forja-independent-review', 'forja-release-pipeline'
+    )
+    $selectedSignals = [System.Collections.Generic.List[string]]::new()
+    foreach ($skill in @(Get-SkillSelection -Project $Project -Prompt $Prompt)) {
+        if (-not $selectedSignals.Contains($skill)) { $selectedSignals.Add($skill) }
     }
-    if ($isIncidentRecovery) {
-        $selected = @('forja-incident-response', 'forja-data-recovery', 'forja-test-strategy', 'forja-documentation')
-        return [PSCustomObject]@{
-            taskSummary = 'Confirmed FORJA production outage with suspected data loss and a proposed restore.'
-            riskLevel = 'CRITICAL'
-            selectedSkills = $selected
-            skillsDeliberatelyNotSelected = @($allSkills | Where-Object { $_ -notin $selected })
-            requiredApprovals = @('Require explicit incident authority and specific recovery authorization before any production action.')
-            prohibitedActions = @('Do not restore production data, delete evidence, or run destructive production commands.')
-            validationPlan = @('Preserve incident evidence; simulate copy-first recovery with a read-only dry-run, counts, checksums, and post-verify plan.')
-            stopConditions = @('Stop before containment, restore, or any production action.')
-        }
+    $addSkill = {
+        param([string]$Name)
+        if (-not $selectedSignals.Contains($Name)) { $selectedSignals.Add($Name) }
     }
-    return $null
+    $hasIncident = $text -match '\b(confirmed.*(?:outage|incident|data loss)|production outage|suspected data loss)\b'
+    $hasRecovery = $text -match '\b(restore|rollback|recovery|copy-first)\b'
+    $hasFrontend = $text -match '\b(frontend|modal|dialog|form|button|ui)\b'
+    $hasUx = $text -match '\b(keyboard|focus|contrast|accessibility|modal dialog)\b'
+    $hasMigration = $text -match '\b(rls|schema|migration)\b'
+    $hasTestStrategy = $text -match '\b(test strategy|test matrix|test plan)\b'
+    $hasDocumentation = $text -match '\b(documentation|evidence|report|readme|adr|runbook)\b'
+    $hasPerformance = $text -match '\b(performance|latency|slowness|rendering)\b'
+    $hasReview = $text -match '\b(review|pull request|diff)\b'
+    $hasRelease = $text -match '\b(release|deploy|tag)\b'
+    if ($hasIncident) { & $addSkill 'forja-incident-response' }
+    if ($hasRecovery) { & $addSkill 'forja-data-recovery' }
+    if ($hasFrontend) { & $addSkill 'forja-safe-frontend-change' }
+    if ($hasUx) { & $addSkill 'forja-ux-accessibility' }
+    if ($hasMigration) {
+        foreach ($skill in @('forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy')) { & $addSkill $skill }
+    }
+    if ($hasTestStrategy) { & $addSkill 'forja-test-strategy' }
+    if ($hasDocumentation) { & $addSkill 'forja-documentation' }
+    if ($hasPerformance) { & $addSkill 'forja-performance-audit' }
+    if ($hasReview) { & $addSkill 'forja-independent-review' }
+    if ($hasRelease) { & $addSkill 'forja-release-pipeline' }
+    $selected = @($downstreamSkills | Where-Object { $selectedSignals.Contains($_) })
+    if ($selected.Count -eq 0) { return $null }
+
+    $risk = if ($selected -contains 'forja-incident-response' -or $selected -contains 'forja-data-recovery') {
+        'CRITICAL'
+    }
+    elseif ($selected -contains 'forja-supabase-migration' -or $selected -contains 'forja-auth-storage-safety' -or (($selected -contains 'forja-release-pipeline') -and $text -match '\bproduction\b')) {
+        'HIGH'
+    }
+    elseif ($selected -contains 'forja-safe-frontend-change' -or $selected -contains 'forja-ux-accessibility' -or $selected -contains 'forja-performance-audit') {
+        'MODERATE'
+    }
+    else { 'LOW' }
+
+    $intents = [System.Collections.Generic.List[string]]::new()
+    if ($selected -contains 'forja-incident-response') { $intents.Add('confirmed incident or outage') }
+    if ($selected -contains 'forja-data-recovery') { $intents.Add('restore or recovery planning') }
+    if ($selected -contains 'forja-safe-frontend-change') { $intents.Add('frontend change') }
+    if ($selected -contains 'forja-ux-accessibility') { $intents.Add('UX and accessibility') }
+    if ($selected -contains 'forja-supabase-migration') { $intents.Add('RLS or migration') }
+    if ($selected -contains 'forja-test-strategy') { $intents.Add('test strategy') }
+    if ($selected -contains 'forja-documentation') { $intents.Add('documentation or evidence') }
+    if ($selected -contains 'forja-performance-audit') { $intents.Add('performance audit') }
+    if ($selected -contains 'forja-independent-review') { $intents.Add('independent review') }
+    if ($selected -contains 'forja-release-pipeline') { $intents.Add('release work') }
+
+    $approvals = [System.Collections.Generic.List[string]]::new()
+    if ($risk -eq 'CRITICAL') { $approvals.Add('Require explicit incident authority before any production action.') }
+    if ($selected -contains 'forja-data-recovery') { $approvals.Add('Require specific recovery authorization for the environment, action, and scope.') }
+    if ($selected -contains 'forja-supabase-migration') { $approvals.Add('Require approval before migration execution.') }
+    if ($selected -contains 'forja-safe-frontend-change') { $approvals.Add('Require approval before FORJA SaaS merge.') }
+    if ($approvals.Count -eq 0) { $approvals.Add('No execution approval is implied by this routing record.') }
+
+    $prohibited = [System.Collections.Generic.List[string]]::new()
+    if ($risk -eq 'CRITICAL') { $prohibited.Add('Do not execute production actions or delete incident evidence.') }
+    if ($selected -contains 'forja-data-recovery') { $prohibited.Add('Do not restore data or remove backups without specific authorization.') }
+    if ($selected -contains 'forja-supabase-migration') { $prohibited.Add('Do not run remote database commands or edit an applied migration.') }
+    if ($selected -contains 'forja-safe-frontend-change') { $prohibited.Add('Do not merge an unapproved or unrelated SaaS change.') }
+    if ($selected -contains 'forja-test-strategy') { $prohibited.Add('Do not claim tests or validation that did not run.') }
+    if ($selected -contains 'forja-documentation') { $prohibited.Add('Do not record unverified claims as executed evidence.') }
+    if ($prohibited.Count -eq 0) { $prohibited.Add('Do not act outside the confirmed FORJA scope.') }
+
+    $validation = [System.Collections.Generic.List[string]]::new()
+    if ($selected -contains 'forja-incident-response') { $validation.Add('Preserve and verify timestamped incident evidence before a fix.') }
+    if ($selected -contains 'forja-data-recovery') { $validation.Add('Validate copy-first recovery with a read-only dry-run, counts, checksums, and post-verify plan.') }
+    if ($selected -contains 'forja-safe-frontend-change') { $validation.Add('Validate scoped frontend behavior and navigation.') }
+    if ($selected -contains 'forja-ux-accessibility') { $validation.Add('Validate keyboard, focus, semantics, and accessibility behavior.') }
+    if ($selected -contains 'forja-supabase-migration') { $validation.Add('Validate the incremental migration locally with authenticated RLS tenant-isolation checks.') }
+    if ($selected -contains 'forja-test-strategy') { $validation.Add('Run the smallest sufficient test strategy for the selected risk and surfaces.') }
+    if ($selected -contains 'forja-documentation') { $validation.Add('Validate documentation and evidence against observed artifacts.') }
+    if ($selected -contains 'forja-performance-audit') { $validation.Add('Compare measured performance baseline and result.') }
+    if ($selected -contains 'forja-independent-review') { $validation.Add('Validate independent review findings against the diff.') }
+    if ($selected -contains 'forja-release-pipeline') { $validation.Add('Validate release gates and candidate evidence.') }
+
+    $stops = [System.Collections.Generic.List[string]]::new()
+    if ($risk -eq 'CRITICAL') { $stops.Add('Stop before any production action without explicit incident authority.') }
+    if ($selected -contains 'forja-data-recovery') { $stops.Add('Stop before restore until recovery authorization and simulation evidence exist.') }
+    if ($selected -contains 'forja-supabase-migration') { $stops.Add('Stop before remote database commands or migration execution.') }
+    if ($selected -contains 'forja-safe-frontend-change') { $stops.Add('Stop before FORJA SaaS merge approval.') }
+    if ($stops.Count -eq 0) { $stops.Add('Stop if scope, evidence, or required authority is missing.') }
+
+    return [PSCustomObject][ordered]@{
+        taskSummary = "FORJA: $($intents -join '; ')."
+        riskLevel = $risk
+        selectedSkills = $selected
+        skillsDeliberatelyNotSelected = @($downstreamSkills | Where-Object { $selected -notcontains $_ })
+        requiredApprovals = @($approvals)
+        prohibitedActions = @($prohibited)
+        validationPlan = @($validation)
+        stopConditions = @($stops)
+    }
 }
 
 function Assert-SkillPackSuite {
@@ -1080,26 +1156,114 @@ function Assert-SkillPackSuite {
     }
 
     $cases = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'skill-pack-integration-cases.json')
-    if ($null -ne $cases -and @($cases).Count -eq 2) {
+    $downstreamSkills = @(
+        'forja-incident-response', 'forja-data-recovery', 'forja-safe-frontend-change', 'forja-ux-accessibility',
+        'forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy', 'forja-documentation',
+        'forja-performance-audit', 'forja-independent-review', 'forja-release-pipeline'
+    )
+    $deriveExpectedSelection = {
+        param([string]$Project, [string]$Prompt)
+        if ($Project -ne 'FORJA') { return @() }
+        $text = $Prompt.ToLowerInvariant()
+        $signals = @{}
+        $signals.incident = $text -match '\b(confirmed.*(?:outage|incident|data loss)|production outage|suspected data loss)\b'
+        $signals.recovery = $text -match '\b(restore|rollback|recovery|copy-first)\b'
+        $signals.frontend = $text -match '\b(frontend|modal|dialog|form|button|ui)\b'
+        $signals.ux = $text -match '\b(keyboard|focus|contrast|accessibility|modal dialog)\b'
+        $signals.migration = $text -match '\b(rls|schema|migration)\b'
+        $signals.test = $text -match '\b(test strategy|test matrix|test plan)\b'
+        $signals.documentation = $text -match '\b(documentation|evidence|report|readme|adr|runbook)\b'
+        $signals.performance = $text -match '\b(performance|latency|slowness|rendering)\b'
+        $signals.review = $text -match '\b(review|pull request|diff)\b'
+        $signals.release = $text -match '\b(release|deploy|tag)\b'
+        $selected = @()
+        if ($signals.incident) { $selected += 'forja-incident-response' }
+        if ($signals.recovery) { $selected += 'forja-data-recovery' }
+        if ($signals.frontend) { $selected += 'forja-safe-frontend-change' }
+        if ($signals.ux) { $selected += 'forja-ux-accessibility' }
+        if ($signals.migration) { $selected += @('forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy') }
+        if ($signals.test) { $selected += 'forja-test-strategy' }
+        if ($signals.documentation) { $selected += 'forja-documentation' }
+        if ($signals.performance) { $selected += 'forja-performance-audit' }
+        if ($signals.review) { $selected += 'forja-independent-review' }
+        if ($signals.release) { $selected += 'forja-release-pipeline' }
+        return @($downstreamSkills | Where-Object { $selected -contains $_ })
+    }
+    $invokeRecord = {
+        param([string]$Project, [string]$Prompt)
+        if ((Get-Command Get-SkillPackRouterRecord).Parameters.ContainsKey('Project')) { return Get-SkillPackRouterRecord -Project $Project -Prompt $Prompt }
+        return Get-SkillPackRouterRecord -Prompt $Prompt
+    }
+    $assertSignalRecord = {
+        param([string]$Project, [string]$Prompt, $Actual)
+        if ($Project -ne 'FORJA') {
+            if ($null -ne $Actual) { Add-Failure 'non-FORJA integration prompt must not produce a router record' }
+            return
+        }
+        if ($null -eq $Actual) { Add-Failure 'integration prompt did not derive a router record from its signals'; return }
+        $fields = @('taskSummary', 'riskLevel', 'selectedSkills', 'skillsDeliberatelyNotSelected', 'requiredApprovals', 'prohibitedActions', 'validationPlan', 'stopConditions')
+        if ((@($Actual.PSObject.Properties.Name) -join '|') -ne ($fields -join '|')) { Add-Failure 'integration router record must contain exactly the eight fields' }
+        $expectedSelection = @(& $deriveExpectedSelection $Project $Prompt)
+        if ((@($Actual.selectedSkills) -join '|') -ne ($expectedSelection -join '|')) { Add-Failure 'integration selected skills do not match prompt signals' }
+        $expectedOmitted = @($downstreamSkills | Where-Object { $expectedSelection -notcontains $_ })
+        if ((@($Actual.skillsDeliberatelyNotSelected) -join '|') -ne ($expectedOmitted -join '|')) { Add-Failure 'integration omitted skills are not the downstream complement of selected skills' }
+        if (@($Actual.selectedSkills) -contains 'forja-task-router' -or @($Actual.skillsDeliberatelyNotSelected) -contains 'forja-task-router') { Add-Failure 'router decision mechanism must be excluded from selected and omitted skills' }
+        $expectedRisk = if ($expectedSelection -contains 'forja-incident-response') { 'CRITICAL' } elseif ($expectedSelection -contains 'forja-supabase-migration' -or $expectedSelection -contains 'forja-auth-storage-safety') { 'HIGH' } elseif ($expectedSelection -contains 'forja-safe-frontend-change' -or $expectedSelection -contains 'forja-ux-accessibility' -or $expectedSelection -contains 'forja-performance-audit') { 'MODERATE' } else { 'LOW' }
+        if ($Actual.riskLevel -ne $expectedRisk) { Add-Failure 'integration risk does not preserve the highest selected-skill risk' }
+        foreach ($field in @('taskSummary', 'requiredApprovals', 'prohibitedActions', 'validationPlan', 'stopConditions')) {
+            if ([string]::IsNullOrWhiteSpace((@($Actual.$field) -join ' '))) { Add-Failure "integration router field is empty: $field" }
+        }
+        $validation = @($Actual.validationPlan) -join ' '
+        if ($expectedSelection -contains 'forja-ux-accessibility' -and $validation -notmatch '(?i)keyboard|focus|accessibility') { Add-Failure 'UX selection lacks focused validation' }
+        if ($expectedSelection -contains 'forja-supabase-migration' -and $validation -notmatch '(?i)RLS|migration') { Add-Failure 'migration selection lacks RLS or migration validation' }
+        if ($expectedSelection -contains 'forja-test-strategy' -and $validation -notmatch '(?i)test') { Add-Failure 'test-strategy selection lacks test validation' }
+        if ($expectedSelection -contains 'forja-documentation' -and $validation -notmatch '(?i)documentation|evidence') { Add-Failure 'documentation selection lacks evidence validation' }
+    }
+    if ($null -ne $cases -and @($cases).Count -eq 3 -and @($cases | ForEach-Object { @($_.mutations).Count } | Measure-Object -Sum).Sum -eq 4) {
         foreach ($case in $cases) {
-            $actual = Get-SkillPackRouterRecord -Prompt $case.prompt
-            if ($null -eq $actual) { Add-Failure 'integration prompt did not derive a router record from its text'; continue }
-            $requiredSelection = if ($case.prompt -match '(?i)modal dialog.*RLS migration') {
-                @('forja-safe-frontend-change', 'forja-ux-accessibility', 'forja-supabase-migration', 'forja-auth-storage-safety', 'forja-test-strategy')
-            }
-            elseif ($case.prompt -match '(?i)confirmed FORJA production outage.*restore') {
-                @('forja-incident-response', 'forja-data-recovery', 'forja-test-strategy', 'forja-documentation')
-            }
-            else { @() }
-            if ($requiredSelection.Count -eq 0 -or (@($actual.selectedSkills) -join '|') -ne ($requiredSelection -join '|')) { Add-Failure 'controlled integration selection does not match its mixed prompt signals' }
-            foreach ($field in @('taskSummary', 'riskLevel', 'selectedSkills', 'skillsDeliberatelyNotSelected', 'requiredApprovals', 'prohibitedActions', 'validationPlan', 'stopConditions')) {
-                $expectedValue = @($case.expectedRecord.$field) -join '|'
-                $actualValue = @($actual.$field) -join '|'
-                if ($expectedValue -ne $actualValue) { Add-Failure "integration router field $field does not match prompt-derived record" }
+            $baseActual = & $invokeRecord $case.project $case.prompt
+            & $assertSignalRecord $case.project $case.prompt $baseActual
+            foreach ($mutation in @($case.mutations)) {
+                $mutatedActual = & $invokeRecord $case.project $mutation.prompt
+                & $assertSignalRecord $case.project $mutation.prompt $mutatedActual
+                if ($case.project -eq 'FORJA' -and $null -ne $baseActual -and $null -ne $mutatedActual) {
+                    if ($baseActual.taskSummary -eq $mutatedActual.taskSummary) { Add-Failure 'signal removal did not change task summary' }
+                    if ((@($baseActual.selectedSkills) -join '|') -eq (@($mutatedActual.selectedSkills) -join '|')) { Add-Failure 'signal removal did not change selected skills' }
+                    if ((@($baseActual.skillsDeliberatelyNotSelected) -join '|') -eq (@($mutatedActual.skillsDeliberatelyNotSelected) -join '|')) { Add-Failure 'signal removal did not change omitted skills' }
+                    if ((@($baseActual.validationPlan) -join '|') -eq (@($mutatedActual.validationPlan) -join '|')) { Add-Failure 'signal removal did not change validation plan' }
+                    if ($baseActual.riskLevel -ne $mutatedActual.riskLevel) {
+                        foreach ($gate in @('requiredApprovals', 'prohibitedActions', 'stopConditions')) {
+                            if ((@($baseActual.$gate) -join '|') -eq (@($mutatedActual.$gate) -join '|')) { Add-Failure "risk-changing signal removal did not change $gate" }
+                        }
+                    }
+                }
             }
         }
+        $mutationPrompts = @($cases | ForEach-Object { @($_.mutations) } | ForEach-Object { $_.prompt })
+        if (-not @($mutationPrompts | Where-Object { $_ -match '(?i)frontend form' -and $_ -notmatch '(?i)focus|accessibility|keyboard|modal dialog' }).Count) { Add-Failure 'integration mutations do not remove focused UX signals' }
+        if (-not @($mutationPrompts | Where-Object { $_ -match '(?i)modal dialog' -and $_ -notmatch '(?i)RLS|schema|migration' }).Count) { Add-Failure 'integration mutations do not remove RLS and migration signals' }
+        if (-not @($mutationPrompts | Where-Object { $_ -match '(?i)production outage' -and $_ -notmatch '(?i)test strategy|test matrix|test plan' }).Count) { Add-Failure 'integration mutations do not remove the explicit test-strategy signal' }
+        if (-not @($mutationPrompts | Where-Object { $_ -match '(?i)production outage' -and $_ -notmatch '(?i)documentation|evidence|report|readme|adr|runbook' }).Count) { Add-Failure 'integration mutations do not remove documentation and evidence signals' }
     }
-    else { Add-Failure 'skill pack integration fixture must contain exactly two controlled prompts' }
+    else { Add-Failure 'skill pack integration fixture must contain two FORJA bases, four mutations, and one non-FORJA case' }
+
+    $evidence = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'fresh-context-router-evidence.json')
+    if ($null -eq $evidence -or $evidence.schemaVersion -ne 1 -or $evidence.source -ne 'fresh-context controller runs' -or @($evidence.runs).Count -ne 3) { Add-Failure 'fresh-context evidence artifact has invalid shape' }
+    else {
+        $v1 = @($evidence.runs | Where-Object { $_.iteration -eq 'v1' })
+        $v2 = @($evidence.runs | Where-Object { $_.iteration -match '^v2-' })
+        if ($v1.Count -ne 1 -or $v1[0].status -ne 'failed' -or $v1[0].observed.compositionPassed -ne $false -or $v1[0].commit -ne '51e5e13733481c8c5c3234d6a3a51cd729f59738' -or (@($v1[0].observed.highPromptOmitted) -join '|') -ne 'forja-ux-accessibility' -or (@($v1[0].observed.criticalPromptOmitted) -join '|') -ne 'forja-data-recovery|forja-test-strategy') { Add-Failure 'fresh-context v1 failure evidence is incomplete' }
+        if ($v2.Count -ne 2) { Add-Failure 'fresh-context v2 evidence must contain HIGH and CRITICAL runs' }
+        foreach ($run in $v2) {
+            $matchingCase = @($cases | Where-Object { $_.prompt -eq $run.prompt })
+            if ($matchingCase.Count -ne 1 -or $run.status -ne 'passed' -or $run.commit -ne '55d6a00b171b12d2408fec69d8e9beee5a4e9a29') { Add-Failure 'fresh-context v2 prompt, status, or commit evidence does not match the controlled fixture'; continue }
+            $expectedSelection = @(& $deriveExpectedSelection $matchingCase[0].project $run.prompt)
+            $expectedRisk = if ($expectedSelection -contains 'forja-incident-response') { 'CRITICAL' } else { 'HIGH' }
+            if ((@($run.observed.selectedSkills) -join '|') -ne ($expectedSelection -join '|') -or $run.observed.riskLevel -ne $expectedRisk -or $run.observed.fieldCount -ne 8) { Add-Failure 'fresh-context v2 selected skills, risk, or eight-field evidence is invalid' }
+            $expectedStopGate = if ($expectedRisk -eq 'CRITICAL') { 'before containment, restore, or any production action' } else { 'before remote database commands, production execution, or SaaS merge' }
+            if ($run.observed.routerExcludedFromSelected -ne $true -or $run.observed.routerExcludedFromOmitted -ne $true -or $run.observed.stopGate -ne $expectedStopGate) { Add-Failure 'fresh-context v2 router exclusion or stop-gate evidence is invalid' }
+        }
+    }
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill pack suite' }
 }
 
