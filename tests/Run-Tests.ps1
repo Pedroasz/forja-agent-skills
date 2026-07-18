@@ -219,7 +219,7 @@ function Get-SkillSelection {
     $hasPerformanceMetric = $text -match '\b(html|download|size|bytes?|weight|request|call|latency|slow|slowness|faster|render|rendering|paint|performance)\b'
     $hasPerformanceIntent = $text -match '\b(measure|audit|investigate|profile|improve|reduce|optimize|make|load|render)\b'
     $isPerformanceAudit = $hasPerformanceMetric -and $hasPerformanceIntent
-    $isTestStrategy = $text -match '\b(test strategy|test matrix|testing strategy|test plan)\b'
+    $isTestStrategy = $text -match '\b(test strategy|test matrix|testing strategy|test plan)\b|estratégia de testes|estrategia de testes|matriz de testes|plano de testes|escopo de validação|escopo de validacao'
     if ($isMigration -and $isBoundary) {
         $selection = @('forja-supabase-migration', 'forja-auth-storage-safety')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
@@ -246,6 +246,7 @@ function Get-SkillSelection {
     }
     if ($isRelease) {
         $selection = @('forja-release-pipeline')
+        if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
         return $selection
     }
@@ -255,7 +256,7 @@ function Get-SkillSelection {
         return @()
     }
     if ($isPerformanceAudit) { return @('forja-performance-audit') }
-    $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|form|screen|viewport)\b'
+    $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|botão|botao|form|screen|tela|viewport)\b'
     $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
     $isFullRedesign = $text -match '\bfull redesign\b'
     if ($isBackendOrApiWithoutUi -or $isFullRedesign) {
@@ -265,7 +266,7 @@ function Get-SkillSelection {
     if ($isScopedMobileOrFormAccessibility -or $text -match '\b(contrast|keyboard|focus order|focus return|focus trap|modal dialog|accessibility|semantic html|touch target|reduced motion)\b') {
         return @('forja-ux-accessibility')
     }
-    if ($text -match '\b(button|navigation|frontend|ui|form|html|css|javascript)\b') {
+    if ($text -match '\b(button|botão|botao|navigation|navegação|navegacao|frontend|ui|form|html|css|javascript)\b') {
         $selection = @('forja-safe-frontend-change')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         return $selection
@@ -279,13 +280,22 @@ function Get-TestStrategyOutcome {
     if ((Get-SkillSelection -Project $Project -Prompt $Prompt) -notcontains 'forja-test-strategy') { return $null }
 
     $text = $Prompt.ToLowerInvariant()
-    $isHigh = $text -match '\b(rls|migration|policy|schema|authentication|storage|workspace|tenant)\b'
-    $isFrontend = $text -match '\b(dashboard|button|navigation|frontend|ui|form|html|css|javascript|mobile)\b'
+    $hasSecuritySurface = $text -match '\b(rls|migration|policy|schema|authentication|storage|workspace|tenant)\b'
+    $isSaasRelease = $text -match '\bsaas\b' -and $text -match '\b(release|deploy|production)\b'
+    $isHigh = $hasSecuritySurface -or $isSaasRelease
+    $hasUiSurface = $text -match '\b(dashboard|painel|button|botão|botao|navigation|navegação|navegacao|frontend|ui|form|html|css|javascript|mobile|desktop|viewport|route|rota)\b'
+    $isFrontend = $hasUiSurface
+    $hasStorageSurface = $text -match '\bstorage\b'
     $isProduction = $text -match '\b(production|prod)\b'
     $isProductionMutation = $isProduction -and $text -match '\b(execute|run|apply|change|mutate|write)\b'
     return [PSCustomObject]@{
         risk = if ($isHigh) { 'HIGH' } elseif ($isFrontend) { 'MODERATE' } else { 'LOW' }
-        matrix = if ($isHigh) { 'static|content|manifest|unit|integration|browser|desktop|mobile|navigation|authenticated-actor|rls|tenant|storage|local-migration' } elseif ($isFrontend) { 'static|content|manifest|unit|integration|browser|desktop|mobile|navigation' } else { 'static|content|manifest' }
+        matrix = if ($hasSecuritySurface) {
+            $highMatrix = @('static', 'sql', 'integration', 'local-migration', 'authenticated-actor', 'rls', 'tenant')
+            if ($hasStorageSurface) { $highMatrix += 'storage' }
+            if ($hasUiSurface) { $highMatrix += @('unit', 'browser', 'desktop', 'mobile', 'navigation') }
+            $highMatrix -join '|'
+        } elseif ($isSaasRelease -and $hasUiSurface) { 'static|content|manifest|unit|integration|browser|desktop|mobile|navigation' } elseif ($isFrontend) { 'static|content|manifest|unit|integration|browser|desktop|mobile|navigation' } else { 'static|content|manifest' }
         productionGate = if ($isProductionMutation) { 'AUTHORIZED_EXECUTION_REQUIRED' } elseif ($isProduction) { 'NON_MUTATING_OBSERVATION' } else { 'NOT_APPLICABLE' }
     }
 }
@@ -389,6 +399,13 @@ function Assert-SkillTriggerSuite {
                         if ($route[0].testStrategyOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) test strategy outcome $property does not match actual prompt text" }
                     }
                 }
+            }
+        }
+
+        if ($route[0].PSObject.Properties.Name -contains 'forbiddenMatrixEntries') {
+            $outcome = Get-TestStrategyOutcome -Project $case.project -Prompt $case.prompt
+            foreach ($entry in @($route[0].forbiddenMatrixEntries)) {
+                if (($outcome.matrix -split '\|') -contains $entry) { Add-Failure "$($case.id) matrix over-tests $entry" }
             }
         }
 

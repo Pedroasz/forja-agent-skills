@@ -9,7 +9,8 @@ Escolha a matriz `smallest-sufficient` que prova a alteração e suas fronteiras
 | LOW: documentação, README, artefato de skill | static, content, manifest | sintaxe, links/campos e manifesto ou estrutura válida |
 | MODERATE: frontend funcional | LOW aplicável + unit, integration, browser focado | comportamento, erro e fluxo afetados |
 | MODERATE: UI responsiva ou rota | MODERATE + desktop, mobile, navigation conforme mudança | viewport e rota/retorno afetados |
-| HIGH: auth, RLS, tenant, Storage, migration | LOW/MODERATE aplicáveis + authenticated actor, RLS, tenant, Storage e local migration conforme superfície | permissão permitida e negada, isolamento e migração local |
+| HIGH: auth, RLS, tenant, Storage, migration sem UI | static, SQL, integration, local migration, authenticated actor, RLS e tenant; Storage somente quando afetado | permissão permitida e negada, isolamento e migração local |
+| HIGH: auth, RLS, tenant, Storage, migration com UI | HIGH sem UI + unit, browser, desktop, mobile e navigation conforme a superfície | fronteira de segurança e fluxo visual afetados |
 | CRITICAL: produção ou ação irreversível | HIGH aplicável + parada e autoridade | plano, evidência preservada e autorização explícita antes da execução |
 
 ## Escopo por tipo
@@ -19,7 +20,7 @@ Escolha a matriz `smallest-sufficient` que prova a alteração e suas fronteiras
 - `manifest`: schema, metadados e referências declaradas.
 - `unit`: decisão, validação ou transformação isolada alterada.
 - `integration`: integração local entre componentes ou serviço simulado autorizado.
-- `browser`: apenas o fluxo UI modificado; acrescente desktop, mobile e navigation somente quando o pedido os afetar.
+- `browser`: apenas o fluxo UI modificado; acrescente desktop, mobile e navigation somente quando o pedido os afetar. Não use esses itens para RLS ou migration sem UI, viewport ou rota.
 - `authenticated actor`: execute com identidade autenticada e sem ela quando a fronteira exigir.
 - `RLS` e `tenant`: prove acesso permitido e negação cross-tenant/cross-workspace.
 - `Storage`: prove bucket/objeto permitido e negação fora da fronteira.

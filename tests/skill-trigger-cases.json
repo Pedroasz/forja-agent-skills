@@ -250,6 +250,24 @@
     "mutatedPrompt": "Create a test strategy for FORJA README documentation only."
   },
   {
+    "id": "test-strategy-portuguese-rls",
+    "project": "FORJA",
+    "prompt": "Crie uma estratégia de testes para uma migração de política RLS do FORJA com isolamento de tenant.",
+    "mutatedPrompt": "Crie uma matriz de testes para uma alteração de botão e navegação do dashboard FORJA."
+  },
+  {
+    "id": "test-strategy-portuguese-plan-scope",
+    "project": "FORJA",
+    "prompt": "Defina um plano de testes e escopo de validação para uma migração RLS do FORJA com isolamento de tenant.",
+    "mutatedPrompt": "Defina um plano de testes para a documentação README do FORJA."
+  },
+  {
+    "id": "test-strategy-release",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for the functional FORJA SaaS dashboard release after checks pass.",
+    "mutatedPrompt": "Create a test strategy for a FORJA README documentation change."
+  },
+  {
     "id": "test-strategy-production-gate",
     "project": "FORJA",
     "prompt": "Create a test strategy for non-mutating observation of a FORJA RLS policy migration in production.",

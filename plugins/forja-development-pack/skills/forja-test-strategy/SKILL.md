@@ -11,7 +11,7 @@ Defina a menor matriz suficiente, baseada em evidências e no risco já roteado.
 
 ## Trigger conditions
 
-Use quando o pedido FORJA solicitar explicitamente `test strategy`, `test matrix`, plano de testes ou escopo de validação. Cubra documentação, frontend, autenticação, RLS, tenant, Storage e migration apenas conforme os sinais reais do pedido.
+Use quando o pedido FORJA solicitar explicitamente `test strategy`, `test matrix`, `estratégia de testes`, `matriz de testes`, `plano de testes` ou `escopo de validação`. Cubra documentação, frontend, autenticação, RLS, tenant, Storage e migration apenas conforme os sinais reais do pedido.
 
 ## Do not trigger when
 
@@ -35,7 +35,7 @@ Leia [test-matrix.md](references/test-matrix.md). Comece pela mudança observáv
 
 ## Required checks
 
-Use static/content/manifest para artefatos documentais; não exija browser para texto sem comportamento. Use unit e integration para lógica e integrações afetadas. Use browser focado para fluxo visual; desktop, mobile e navigation somente quando a UI, viewport ou rota mudarem. Teste offline, preview e production somente se aplicáveis e autorizados: `non-mutating observation` coleta evidência sem mudar estado; `authorized execution` exige autorização explícita antes de qualquer mutação.
+Use static/content/manifest para artefatos documentais; não exija browser para texto sem comportamento. Em RLS ou migration sem superfície de UI, use static, SQL, integration, local migration, authenticated actor, RLS e tenant, sem browser, desktop, mobile ou navigation. Acrescente unit e browser focado, desktop, mobile e navigation somente quando a UI, viewport ou rota mudarem. Teste offline, preview e production somente se aplicáveis e autorizados: `non-mutating observation` coleta evidência sem mudar estado; `authorized execution` exige autorização explícita antes de qualquer mutação.
 
 ## Stop conditions
 
