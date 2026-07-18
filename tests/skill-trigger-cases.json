@@ -1,0 +1,19 @@
+[
+  {
+    "id": "button-change",
+    "project": "FORJA",
+    "prompt": "Change the FORJA dashboard button behavior.",
+    "mutatedPrompt": "Update the FORJA README documentation for the dashboard button."
+  },
+  {
+    "id": "mobile-navigation",
+    "project": "FORJA",
+    "prompt": "Fix FORJA mobile navigation after changing the menu UI.",
+    "mutatedPrompt": "Document the FORJA mobile navigation in the README."
+  },
+  {
+    "id": "docs-only-edit",
+    "project": "FORJA",
+    "prompt": "Update FORJA documentation with the validated local setup instructions."
+  }
+]

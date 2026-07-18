@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Manifests', 'Routing')]
+    [ValidateSet('Manifests', 'Routing', 'SkillTriggers')]
     [string]$Suite = 'Manifests'
 )
 
@@ -201,6 +201,65 @@ function Assert-RoutingSuite {
     if ($failures.Count -eq 0) { Write-Output 'PASS: routing suite' }
 }
 
+function Get-FrontendSkillSelection {
+    param([string]$Project, [string]$Prompt)
+
+    $text = $Prompt.ToLowerInvariant()
+    if ($Project -ne 'FORJA' -or $text -match '\b(documentation|readme|adr|docs-only)\b') {
+        return @()
+    }
+    if ($text -match '\b(button|navigation|frontend|ui|form|html|css|javascript)\b') {
+        return @('forja-safe-frontend-change')
+    }
+    return @()
+}
+
+function Assert-SkillTriggerSuite {
+    $cases = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'skill-trigger-cases.json')
+    $expected = Read-JsonFixture -Path (Join-Path $PSScriptRoot 'expected-skill-selection.json')
+    if ($null -eq $cases -or $null -eq $expected) { return }
+
+    foreach ($case in $cases) {
+        $route = @($expected | Where-Object { $_.id -eq $case.id })
+        if ($route.Count -ne 1) { Add-Failure "$($case.id) must map to exactly one expected skill selection"; continue }
+        $actual = Get-FrontendSkillSelection -Project $case.project -Prompt $case.prompt
+        if ((@($route[0].selectedSkills) -join '|') -ne ($actual -join '|')) { Add-Failure "$($case.id) skill selection does not match actual prompt text" }
+
+        if ($null -ne $case.mutatedPrompt) {
+            $mutated = Get-FrontendSkillSelection -Project $case.project -Prompt $case.mutatedPrompt
+            if (($mutated -join '|') -eq ($actual -join '|')) { Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence" }
+        }
+    }
+
+    $skillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-safe-frontend-change/SKILL.md'
+    $referencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-safe-frontend-change/references/frontend-safety-checks.md'
+    if (-not (Test-Path -LiteralPath $skillPath -PathType Leaf)) { Add-Failure 'safe frontend change skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $referencePath -PathType Leaf)) { Add-Failure 'frontend safety checks reference is missing'; return }
+
+    $skill = Get-Content -LiteralPath $skillPath -Raw
+    if ($skill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-safe-frontend-change\s*\r?\ndescription:\s*Use when') { Add-Failure 'safe frontend change front matter is invalid' }
+    $frontMatter = [regex]::Match($skill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($frontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'safe frontend change front matter must contain only name and description' }
+
+    $sectionHeadings = @('Purpose', 'Trigger conditions', 'Do not trigger when', 'Required inputs', 'Expected outputs', 'Risk classification', 'Workflow', 'Required checks', 'Stop conditions', 'Failure recovery', 'Handoff or next skills', 'Completion evidence')
+    $actualHeadings = @($skill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) })
+    if (($actualHeadings -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'safe frontend change must contain exactly the required twelve H2 sections' }
+
+    foreach ($requirement in @('MODERATE', 'documentation', 'DOM IDs', 'event handlers', 'XSS', 'blank screen', 'desktop', 'mobile', 'navigation', 'approval before.*SaaS merge')) {
+        if ($skill -notmatch "(?is)$requirement") { Add-Failure "safe frontend change requirement is missing: $requirement" }
+    }
+    foreach ($handoff in @('forja-ux-accessibility', 'forja-performance-audit', 'forja-test-strategy')) {
+        if ($skill -notmatch "(?i)$handoff") { Add-Failure "safe frontend change handoff is missing: $handoff" }
+    }
+
+    $reference = Get-Content -LiteralPath $referencePath -Raw
+    foreach ($check in @('DOM IDs', 'event handlers', 'escaping', 'XSS', 'blank screen', 'desktop', 'mobile', 'navigation')) {
+        if ($reference -notmatch "(?i)$check") { Add-Failure "frontend safety reference is missing check: $check" }
+    }
+
+    if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
+}
+
 if ($Suite -eq 'Manifests') {
     Assert-JsonManifest `
         -Path (Join-Path $repoRoot 'plugins/forja-development-pack/.codex-plugin/plugin.json') `
@@ -234,8 +293,11 @@ if ($Suite -eq 'Manifests') {
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: manifest suite' }
 }
-else {
+elseif ($Suite -eq 'Routing') {
     Assert-RoutingSuite
+}
+else {
+    Assert-SkillTriggerSuite
 }
 
 if ($failures.Count -gt 0) {
