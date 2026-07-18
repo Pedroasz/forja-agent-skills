@@ -114,7 +114,19 @@
     "id": "independent-critical-finding-review",
     "project": "FORJA",
     "prompt": "Review this FORJA code PR before merge: a Critical finding remains open in the diff.",
-    "mutatedPrompt": "Review this FORJA code PR before merge: the Critical finding is Fixed, accepted by explicit risk authority, and re-review is complete."
+    "mutatedPrompt": "Review this FORJA code PR before merge: the Critical finding is Fixed and re-review is complete."
+  },
+  {
+    "id": "independent-fixed-pending-rereview",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code PR before merge: a High finding is Fixed pending re-review.",
+    "mutatedPrompt": "Review this FORJA code PR before merge: the High finding is Fixed and re-review is complete."
+  },
+  {
+    "id": "independent-accepted-risk-without-authority",
+    "project": "FORJA",
+    "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk but no authority is identified.",
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk by explicit risk authority and re-review is complete."
   },
   {
     "id": "independent-review-other-project",

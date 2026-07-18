@@ -257,7 +257,10 @@ function Get-IndependentReviewOutcome {
 
     $text = $Prompt.ToLowerInvariant()
     $hasCriticalOrHighFinding = $text -match '\b(critical|high)\b.*\b(finding|issue)\b|\b(finding|issue)\b.*\b(critical|high)\b'
-    $hasResolution = $text -match '\b(fixed|accepted risk)\b' -and $text -match '\bexplicit risk authority\b' -and $text -match '\bre-review(?:ed)?\b'
+    $isReReviewed = $text -match '\bre-reviewed\b|\bre-review\b.*\b(complete|completed)\b'
+    $fixedAndReReviewed = $text -match '\bfixed\b' -and $isReReviewed
+    $acceptedRiskWithAuthorityAndReReview = $text -match '\baccepted risk\b' -and $text -match '\bexplicit risk authority\b' -and $isReReviewed
+    $hasResolution = $fixedAndReReviewed -or $acceptedRiskWithAuthorityAndReReview
 
     return [PSCustomObject]@{
         perspectives = 'architecture|security|usability/accessibility'
