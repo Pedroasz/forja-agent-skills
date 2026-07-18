@@ -345,6 +345,24 @@
     "prompt": "FORJA folder ID: folder-42; file ID: file-42."
   },
   {
+    "id": "incident-hypothetical-sync",
+    "project": "FORJA",
+    "prompt": "Hypothetically, how should FORJA plan for a production sync incident with possible data loss? Do not execute any incident action.",
+    "mutatedPrompt": "Confirmed FORJA production outage from sync loss: preserve timestamps, snapshot hash, log reference, chain and owner; do not restart."
+  },
+  {
+    "id": "incident-confirmed-outage",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage: preserve timestamps, snapshot hash, log reference, chain and owner before any fix; no restart.",
+    "mutatedPrompt": "Hypothetically, how should FORJA plan for a production sync incident with possible data loss? Do not execute any incident action."
+  },
+  {
+    "id": "incident-ordinary-local-bug",
+    "project": "FORJA",
+    "prompt": "Fix a local FORJA button bug in the development environment.",
+    "mutatedPrompt": "Confirmed FORJA production error causing an outage: preserve timestamps, snapshot hash, log reference, chain and owner before any fix."
+  },
+  {
     "id": "documentation-academic-anti-trigger",
     "project": "OTHER",
     "prompt": "Edit this academic essay for clarity and citations."

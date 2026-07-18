@@ -208,6 +208,11 @@ function Get-SkillSelection {
     if ($Project -ne 'FORJA') {
         return @()
     }
+    $isHypotheticalIncident = $text -match '\b(hypothetically|hypothetical|hipoteticamente)\b'
+    $hasIncidentSignal = $text -match '\b(incident|incidente|outage|data loss|perda de dados|production error|erro de produ[cç][aã]o)\b'
+    $hasProductionSignal = $text -match '\b(production|produ[cç][aã]o|prod)\b'
+    $isConfirmedIncident = -not $isHypotheticalIncident -and $hasIncidentSignal -and ($hasProductionSignal -or $text -match '\b(outage|data loss|perda de dados)\b')
+    $incidentSelection = if (($isHypotheticalIncident -and $hasIncidentSignal) -or $isConfirmedIncident) { @('forja-incident-response') } else { @() }
     $isExplicitReviewArtifact = $text -match '\b(review|audit)\b' -and $text -match '\b(pr|pull request|diff)\b'
     $isGenericChangeReviewBeforeMerge = $text -match '\b(review|audit)\b' -and $text -match '\bbefore merge\b' -and $text -match '\b(code|documentation|change)\b'
     $isIndependentReview = $isExplicitReviewArtifact -or $isGenericChangeReviewBeforeMerge
@@ -230,7 +235,7 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($documentationSelection + $selection)
+        return @($incidentSelection + $documentationSelection + $selection)
     }
     if ($isMigration) {
         $selection = @('forja-supabase-migration')
@@ -238,7 +243,7 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($documentationSelection + $selection)
+        return @($incidentSelection + $documentationSelection + $selection)
     }
     if ($isBoundary) {
         $selection = @('forja-auth-storage-safety')
@@ -246,49 +251,49 @@ function Get-SkillSelection {
         if ($isPerformanceAudit) { $selection += 'forja-performance-audit' }
         if ($isRelease) { $selection += 'forja-release-pipeline' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return @($documentationSelection + $selection)
+        return @($incidentSelection + $documentationSelection + $selection)
     }
     if ($isRelease) {
         $selection = @($documentationSelection + @('forja-release-pipeline'))
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
         if ($isIndependentReview) { $selection += 'forja-independent-review' }
-        return $selection
+        return @($incidentSelection + $selection)
     }
     if ($isIndependentReview) {
         $selection = @('forja-independent-review')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return $selection
+        return @($incidentSelection + $selection)
     }
     if ($isDocumentation) {
         $selection = @('forja-documentation')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return $selection
+        return @($incidentSelection + $selection)
     }
     if ($isPerformanceAudit) {
         $selection = @('forja-performance-audit')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return $selection
+        return @($incidentSelection + $selection)
     }
     $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|botão|botao|form|screen|tela|viewport)\b'
     $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
     $isFullRedesign = $text -match '\bfull redesign\b'
     if ($isBackendOrApiWithoutUi -or $isFullRedesign) {
-        if ($isTestStrategy) { return @('forja-test-strategy') }
-        return @()
+        if ($isTestStrategy) { return @($incidentSelection + @('forja-test-strategy')) }
+        return $incidentSelection
     }
     $isScopedMobileOrFormAccessibility = $text -match '\b(mobile|form)\b.*\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b|\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b.*\b(mobile|form)\b'
     if ($isScopedMobileOrFormAccessibility -or $text -match '\b(contrast|keyboard|focus order|focus return|focus trap|modal dialog|accessibility|semantic html|touch target|reduced motion)\b') {
         $selection = @('forja-ux-accessibility')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return $selection
+        return @($incidentSelection + $selection)
     }
     if ($text -match '\b(button|botão|botao|navigation|navegação|navegacao|frontend|ui|form|html|css|javascript)\b') {
         $selection = @('forja-safe-frontend-change')
         if ($isTestStrategy) { $selection += 'forja-test-strategy' }
-        return $selection
+        return @($incidentSelection + $selection)
     }
-    if ($isTestStrategy) { return @('forja-test-strategy') }
-    return @()
+    if ($isTestStrategy) { return @($incidentSelection + @('forja-test-strategy')) }
+    return $incidentSelection
 }
 
 function Get-TestStrategyOutcome {
@@ -331,6 +336,29 @@ function Get-PerformanceAuditOutcome {
         scopeRefinementRequired = $isVague
         metricSpecificity = if ($hasSpecificMetric) { 'SPECIFIC' } else { 'UNSPECIFIED' }
     }
+}
+
+function Get-IncidentResponseOutcome {
+    param([string]$Project, [string]$Prompt)
+
+    $text = $Prompt.ToLowerInvariant()
+    $sequence = 'contain|preserve|classify|investigate|communicate|fix|verify|document'
+    if ($Project -ne 'FORJA') {
+        return [PSCustomObject]@{ incidentState = 'NOT_FORJA'; risk = 'NONE'; sequence = ''; executionAllowed = $false; evidencePreserved = $false }
+    }
+    $isHypothetical = $text -match '\b(hypothetically|hypothetical|hipoteticamente)\b'
+    $hasIncidentSignal = $text -match '\b(incident|incidente|outage|data loss|perda de dados|production error|erro de produ[cç][aã]o)\b'
+    $hasProductionSignal = $text -match '\b(production|produ[cç][aã]o|prod)\b'
+    $isConfirmed = -not $isHypothetical -and $hasIncidentSignal -and ($hasProductionSignal -or $text -match '\b(outage|data loss|perda de dados)\b')
+    $hasEvidence = $text -match '\b(timestamp|timestamps|hash|snapshot|log reference|log references|chain|owner)\b'
+    $hasAuthority = $text -match '\b(explicit incident authority|incident authority)\b'
+    if ($isHypothetical) {
+        return [PSCustomObject]@{ incidentState = 'HYPOTHETICAL'; risk = 'CRITICAL'; sequence = $sequence; executionAllowed = $false; evidencePreserved = $false }
+    }
+    if ($isConfirmed) {
+        return [PSCustomObject]@{ incidentState = 'CONFIRMED'; risk = 'CRITICAL'; sequence = $sequence; executionAllowed = $hasAuthority; evidencePreserved = $hasEvidence }
+    }
+    return [PSCustomObject]@{ incidentState = 'NOT_INCIDENT'; risk = 'NONE'; sequence = ''; executionAllowed = $false; evidencePreserved = $false }
 }
 
 function Get-IndependentReviewOutcome {
@@ -445,6 +473,13 @@ function Assert-SkillTriggerSuite {
             }
         }
 
+        if ($null -ne $route[0].incidentOutcome) {
+            $outcome = Get-IncidentResponseOutcome -Project $case.project -Prompt $case.prompt
+            foreach ($property in @('incidentState', 'risk', 'sequence', 'executionAllowed', 'evidencePreserved')) {
+                if ($route[0].incidentOutcome.$property -ne $outcome.$property) { Add-Failure "$($case.id) incident outcome $property does not match actual prompt text" }
+            }
+        }
+
         if ($null -ne $case.mutatedPrompt) {
             $mutated = Get-SkillSelection -Project $case.project -Prompt $case.mutatedPrompt
             if (($mutated -join '|') -eq ($actual -join '|')) {
@@ -453,6 +488,9 @@ function Assert-SkillTriggerSuite {
                 }
                 elseif ($route[0].PSObject.Properties.Name -contains 'mutatedDocumentationOutcome') {
                     # Documentation mutations intentionally preserve routing while reducing evidence completeness.
+                }
+                elseif ($route[0].PSObject.Properties.Name -contains 'mutatedIncidentOutcome') {
+                    # Incident mutations may preserve selection while changing state, authority, or evidence gates.
                 }
                 elseif ($null -eq $route[0].releaseKind) {
                     Add-Failure "$($case.id) mutated prompt did not change the skill-selection evidence"
@@ -498,6 +536,12 @@ function Assert-SkillTriggerSuite {
                 $mutatedDocumentationOutcome = Get-DocumentationEvidenceOutcome -Project $case.project -Prompt $case.mutatedPrompt
                 foreach ($property in @('evidenceCompleteness', 'confirmationScope')) {
                     if ($route[0].mutatedDocumentationOutcome.$property -ne $mutatedDocumentationOutcome.$property) { Add-Failure "$($case.id) mutated documentation outcome $property does not match actual prompt evidence" }
+                }
+            }
+            if ($route[0].PSObject.Properties.Name -contains 'mutatedIncidentOutcome') {
+                $mutatedIncidentOutcome = Get-IncidentResponseOutcome -Project $case.project -Prompt $case.mutatedPrompt
+                foreach ($property in @('incidentState', 'risk', 'sequence', 'executionAllowed', 'evidencePreserved')) {
+                    if ($route[0].mutatedIncidentOutcome.$property -ne $mutatedIncidentOutcome.$property) { Add-Failure "$($case.id) mutated incident outcome $property does not match actual prompt text" }
                 }
             }
             if ($route[0].PSObject.Properties.Name -contains 'mutatedForbiddenMatrixEntries') {
@@ -690,6 +734,26 @@ function Assert-SkillTriggerSuite {
     $documentationReference = Get-Content -LiteralPath $documentationReferencePath -Raw
     foreach ($check in @('executed', 'observed', 'planned', 'not-run', 'evidence source', 'command', 'timestamp', 'commit', 'hash', 'URL', 'Drive ID', 'size', 'modified', 'local artifact', 'GitHub', 'production', 'folder ID', 'file ID', 'reread', 'secret', 'credential', 'PII', 'backup-before-update', 'pre-update', 'backup file ID', 'backup name', 'backup size', 'backup modified', 'backup confirmation', 'original file ID', 'never delete history', 'NOT_APPLICABLE')) {
         if ($documentationReference -notmatch "(?is)$check") { Add-Failure "documentation evidence schema is missing check: $check" }
+    }
+
+    $incidentSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-incident-response/SKILL.md'
+    $incidentReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-incident-response/references/incident-runbook.md'
+    if (-not (Test-Path -LiteralPath $incidentSkillPath -PathType Leaf)) { Add-Failure 'incident response skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $incidentReferencePath -PathType Leaf)) { Add-Failure 'incident response runbook is missing'; return }
+
+    $incidentSkill = Get-Content -LiteralPath $incidentSkillPath -Raw
+    if ($incidentSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-incident-response\s*\r?\ndescription:\s*Use when') { Add-Failure 'incident response front matter is invalid' }
+    $incidentFrontMatter = [regex]::Match($incidentSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($incidentFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'incident response front matter must contain only name and description' }
+    if (($actualHeadings = @($incidentSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'incident response must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('CRITICAL', 'confirmed incident', 'outage', 'data loss', 'production error', 'hypothetical', 'contain', 'preserve', 'classify', 'investigate', 'communicate', 'fix', 'verify', 'document', 'timestamp', 'hash', 'snapshot', 'log reference', 'chain', 'owner', 'explicit incident authority', 'reversible containment', 'no log deletion', 'cleanup', 'restart', 'destructive', 'production mutation', 'rollback', 'recovery', 'status', 'cadence', 'no blame', 'secret', 'PII')) {
+        if ($incidentSkill -notmatch "(?is)$requirement") { Add-Failure "incident response skill requirement is missing: $requirement" }
+    }
+    $incidentSequence = @('contain', 'preserve', 'classify', 'investigate', 'communicate', 'fix', 'verify', 'document') -join '.*'
+    if ($incidentSkill -notmatch "(?is)$incidentSequence") { Add-Failure 'incident response workflow must keep the required ordered sequence' }
+    $incidentReference = Get-Content -LiteralPath $incidentReferencePath -Raw
+    foreach ($check in @('timestamp', 'hash', 'snapshot', 'log reference', 'chain', 'owner', 'contain', 'preserve', 'classify', 'investigate', 'communicate', 'fix', 'verify', 'document', 'rollback', 'recovery', 'status', 'cadence', 'no blame', 'secret', 'PII')) {
+        if ($incidentReference -notmatch "(?is)$check") { Add-Failure "incident response runbook is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
