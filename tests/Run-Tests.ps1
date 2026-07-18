@@ -243,6 +243,12 @@ function Get-SkillSelection {
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         return @()
     }
+    $hasObservableUiWork = $text -match '\b(observable ui|user interface|checkout|modal|dialog|button|form|screen|viewport)\b'
+    $isBackendOrApiWithoutUi = $text -match '\b(backend|api)\b' -and -not $hasObservableUiWork
+    $isFullRedesign = $text -match '\bfull redesign\b'
+    if ($isBackendOrApiWithoutUi -or $isFullRedesign) {
+        return @()
+    }
     $isScopedMobileOrFormAccessibility = $text -match '\b(mobile|form)\b.*\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b|\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b.*\b(mobile|form)\b'
     if ($isScopedMobileOrFormAccessibility -or $text -match '\b(contrast|keyboard|focus order|focus return|focus trap|modal dialog|accessibility|semantic html|touch target|reduced motion)\b') {
         return @('forja-ux-accessibility')

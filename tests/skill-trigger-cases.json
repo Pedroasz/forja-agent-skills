@@ -18,6 +18,24 @@
     "mutatedPrompt": "Refactor the FORJA backend API handler to simplify its response mapping."
   },
   {
+    "id": "ux-backend-preferences-anti-trigger",
+    "project": "FORJA",
+    "prompt": "Refactor the FORJA backend API that records accessibility contrast preferences.",
+    "mutatedPrompt": "Fix the insufficient contrast of the FORJA checkout button text for keyboard users."
+  },
+  {
+    "id": "ux-full-redesign-anti-trigger",
+    "project": "FORJA",
+    "prompt": "Perform a full redesign of the FORJA modal dialog with focus improvements.",
+    "mutatedPrompt": "Fix focus order and focus return in the FORJA confirmation modal dialog."
+  },
+  {
+    "id": "ux-observable-ui-with-backend-context",
+    "project": "FORJA",
+    "prompt": "Fix the FORJA checkout modal focus return in the observable UI; the backend already records the preference.",
+    "mutatedPrompt": "Refactor the FORJA backend API that records accessibility contrast preferences."
+  },
+  {
     "id": "backend-only-task",
     "project": "FORJA",
     "prompt": "Refactor the FORJA backend API handler to simplify its response mapping."
