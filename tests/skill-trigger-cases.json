@@ -1,5 +1,38 @@
 [
   {
+    "id": "ux-contrast-issue",
+    "project": "FORJA",
+    "prompt": "Fix the insufficient contrast of the FORJA checkout button text for keyboard users.",
+    "mutatedPrompt": "Update the FORJA profile copy shown after a login."
+  },
+  {
+    "id": "ux-modal-focus",
+    "project": "FORJA",
+    "prompt": "Fix focus order and focus return in the FORJA confirmation modal dialog.",
+    "mutatedPrompt": "Update the FORJA profile copy shown after a login."
+  },
+  {
+    "id": "ux-mobile-form-errors",
+    "project": "FORJA",
+    "prompt": "Fix inaccessible error feedback and labels in the FORJA mobile checkout form.",
+    "mutatedPrompt": "Refactor the FORJA backend API handler to simplify its response mapping."
+  },
+  {
+    "id": "backend-only-task",
+    "project": "FORJA",
+    "prompt": "Refactor the FORJA backend API handler to simplify its response mapping."
+  },
+  {
+    "id": "project-focus-docs",
+    "project": "FORJA",
+    "prompt": "Update FORJA documentation with the project focus for the next quarter."
+  },
+  {
+    "id": "modal-documentation",
+    "project": "FORJA",
+    "prompt": "Document the FORJA modal component API in the README."
+  },
+  {
     "id": "button-change",
     "project": "FORJA",
     "prompt": "Change the FORJA dashboard button behavior.",

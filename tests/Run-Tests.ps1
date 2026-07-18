@@ -243,6 +243,10 @@ function Get-SkillSelection {
     if ($text -match '\b(documentation|readme|adr|docs-only|profile copy|profile text|copy shown)\b') {
         return @()
     }
+    $isScopedMobileOrFormAccessibility = $text -match '\b(mobile|form)\b.*\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b|\b(error|errors|label|labels|semantic|semantics|accessibility|keyboard|focus|contrast)\b.*\b(mobile|form)\b'
+    if ($isScopedMobileOrFormAccessibility -or $text -match '\b(contrast|keyboard|focus order|focus return|focus trap|modal dialog|accessibility|semantic html|touch target|reduced motion)\b') {
+        return @('forja-ux-accessibility')
+    }
     if ($text -match '\b(button|navigation|frontend|ui|form|html|css|javascript)\b') {
         return @('forja-safe-frontend-change')
     }
@@ -457,6 +461,24 @@ function Assert-SkillTriggerSuite {
     $reviewReference = Get-Content -LiteralPath $reviewReferencePath -Raw
     foreach ($check in @('Architecture', 'Security', 'Usability', 'Accessibility', 'Critical', 'High', 'severity', 'evidence', 'file', 'line', 'impact', 'recommended fix', 'status', 'Accepted risk', 're-review')) {
         if ($reviewReference -notmatch "(?is)$check") { Add-Failure "independent review rubric is missing check: $check" }
+    }
+
+    $uxSkillPath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-ux-accessibility/SKILL.md'
+    $uxReferencePath = Join-Path $repoRoot 'plugins/forja-development-pack/skills/forja-ux-accessibility/references/accessibility-checks.md'
+    if (-not (Test-Path -LiteralPath $uxSkillPath -PathType Leaf)) { Add-Failure 'UX accessibility skill is missing'; return }
+    if (-not (Test-Path -LiteralPath $uxReferencePath -PathType Leaf)) { Add-Failure 'accessibility checks reference is missing'; return }
+
+    $uxSkill = Get-Content -LiteralPath $uxSkillPath -Raw
+    if ($uxSkill -notmatch '(?ms)\A---\s*\r?\nname:\s*forja-ux-accessibility\s*\r?\ndescription:\s*Use when') { Add-Failure 'UX accessibility front matter is invalid' }
+    $uxFrontMatter = [regex]::Match($uxSkill, '(?ms)\A---\s*\r?\n(.*?)\r?\n---').Groups[1].Value
+    if ((@($uxFrontMatter -split "`r?`n" | Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_-]*:' }).Count) -ne 2) { Add-Failure 'UX accessibility front matter must contain only name and description' }
+    if (($actualHeadings = @($uxSkill -split "`r?`n" | Where-Object { $_ -match '^## ' } | ForEach-Object { $_.Substring(3) }) -join '|') -ne ($sectionHeadings -join '|')) { Add-Failure 'UX accessibility must contain exactly the required twelve H2 sections' }
+    foreach ($requirement in @('MODERATE', 'mobile', 'form', 'modal', 'keyboard', 'focus', 'contrast', 'error', 'semantic', 'accessibility', 'full redesign', 'documentation-only', 'backend-only', 'separate discovery', 'approval')) {
+        if ($uxSkill -notmatch "(?is)$requirement") { Add-Failure "UX accessibility skill requirement is missing: $requirement" }
+    }
+    $uxReference = Get-Content -LiteralPath $uxReferencePath -Raw
+    foreach ($check in @('keyboard navigation', 'focus order', 'visible focus', 'focus trap', 'focus return', 'contrast', 'error association', 'live feedback', 'semantic HTML', 'labels', 'roles', 'mobile', 'reduced motion', 'touch target')) {
+        if ($uxReference -notmatch "(?is)$check") { Add-Failure "accessibility checks reference is missing check: $check" }
     }
 
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill trigger suite' }
