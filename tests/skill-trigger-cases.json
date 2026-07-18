@@ -64,10 +64,21 @@
     "mutatedPrompt": "Update the FORJA Development Pack README with validated local setup instructions."
   },
   {
+    "id": "package-docs-only-release-complete",
+    "project": "FORJA",
+    "prompt": "Prepare the FORJA Development Pack docs-only skills package release: remote branch protection confirmed; required CI checks passed for the candidate commit; required reviews approved with no blockers; validation evidence matches the diff; VERSION, manifest, and changelog are consistent; annotated tag provenance points to the approved candidate commit.",
+    "mutatedPrompt": "Prepare the FORJA Development Pack docs-only skills package release: remote branch protection confirmed; required CI checks passed for the candidate commit; required reviews approved with no blockers; validation evidence matches the diff; VERSION, manifest, and changelog are consistent."
+  },
+  {
     "id": "functional-saas-release",
     "project": "FORJA",
     "prompt": "Prepare the release of a functional FORJA SaaS dashboard change after its checks pass.",
     "mutatedPrompt": "Prepare the release notes for a documentation-only FORJA Development Pack skills change."
+  },
+  {
+    "id": "functional-saas-release-with-evidence",
+    "project": "FORJA",
+    "prompt": "Prepare the functional FORJA SaaS dashboard release: remote branch protection confirmed; required CI checks passed for the candidate commit; required reviews approved with no blockers; validation evidence matches the diff; VERSION, manifest, and changelog are consistent; annotated tag provenance points to the approved candidate commit."
   },
   {
     "id": "high-risk-saas-release",

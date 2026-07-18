@@ -248,7 +248,14 @@ function Get-ReleaseGate {
         return [PSCustomObject]@{ releaseKind = 'SAAS_FUNCTIONAL'; riskLevel = 'HIGH'; autoMergeEligible = $false; requiresHumanApproval = $true }
     }
     if ($isPackageDocsOnly) {
-        return [PSCustomObject]@{ releaseKind = 'PACKAGE_DOCS_ONLY'; riskLevel = 'LOW'; autoMergeEligible = $true; requiresHumanApproval = $false }
+        $hasBranchProtection = $text -match 'remote branch protection confirmed'
+        $hasCandidateChecks = $text -match 'required ci checks passed for the candidate commit'
+        $hasApprovedReviews = $text -match 'required reviews approved with no blockers'
+        $hasValidationEvidence = $text -match 'validation evidence matches the diff'
+        $hasVersionProvenance = $text -match 'version, manifest, and changelog are consistent'
+        $hasTagProvenance = $text -match 'annotated tag provenance points to the approved candidate commit'
+        $autoMergeEligible = $hasBranchProtection -and $hasCandidateChecks -and $hasApprovedReviews -and $hasValidationEvidence -and $hasVersionProvenance -and $hasTagProvenance
+        return [PSCustomObject]@{ releaseKind = 'PACKAGE_DOCS_ONLY'; riskLevel = 'LOW'; autoMergeEligible = $autoMergeEligible; requiresHumanApproval = $false }
     }
     return $null
 }
@@ -273,7 +280,7 @@ function Assert-SkillTriggerSuite {
                 else {
                     $originalGate = Get-ReleaseGate -Project $case.project -Prompt $case.prompt
                     $mutatedGate = Get-ReleaseGate -Project $case.project -Prompt $case.mutatedPrompt
-                    if ($null -eq $originalGate -or $null -eq $mutatedGate -or $originalGate.releaseKind -eq $mutatedGate.releaseKind) {
+                    if ($null -eq $originalGate -or $null -eq $mutatedGate -or ($originalGate.releaseKind -eq $mutatedGate.releaseKind -and $originalGate.autoMergeEligible -eq $mutatedGate.autoMergeEligible -and $originalGate.requiresHumanApproval -eq $mutatedGate.requiresHumanApproval)) {
                         Add-Failure "$($case.id) mutated prompt did not change the release-gate evidence"
                     }
                 }
