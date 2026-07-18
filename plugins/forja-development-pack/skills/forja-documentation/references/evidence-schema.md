@@ -15,8 +15,8 @@
 | --- | --- | --- |
 | local artifact | caminho/artefato, evidence source, command ou check, timestamp quando relevante, commit/hash quando aplicável | GitHub, Drive ou production. |
 | GitHub | URL, evidence source, command/check, commit/hash quando aplicável e timestamp quando relevante | deploy ou produção. |
-| Drive: novo arquivo | folder ID, file ID, size, modified metadata, evidence source, post-upload reread de metadata ou conteúdo; backup `NOT_APPLICABLE` com reason | upload sem a releitura. |
-| Drive: update/overwrite | backup-before-update: pre-update metadata/conteúdo, backup file ID, backup name com timestamp, backup size, backup modified, backup confirmation, original file ID preservado, e post-upload reread | update/overwrite até o backup confirmado; never delete history. |
+| Drive: novo arquivo | folder ID/file ID não-placeholder, size positivo, modified ISO-8601, evidence source, post-upload reread confirmado; `Backup status: NOT_APPLICABLE` e reason explícita de novo arquivo/sem remoto existente | upload sem a releitura ou com reason genérica. |
+| Drive: update/overwrite | backup-before-update: pre-update metadata/conteúdo read confirmed, backup file ID não-placeholder, backup name timestampado, backup size positivo, backup modified ISO-8601, backup confirmation de reread confirmado antes de update, original file ID preservado, e post-upload reread | update/overwrite até o backup confirmado; never delete history. |
 | production | ambiente, URL quando aplicável, evidence source, check observado, timestamp e autoridade aplicável | mutação, deploy ou saúde total fora do check executado. |
 
 ## Forma mínima de registro

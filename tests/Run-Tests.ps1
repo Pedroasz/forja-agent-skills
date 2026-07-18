@@ -215,7 +215,8 @@ function Get-SkillSelection {
     $isBoundary = $text -match '\b(authentication|authenticated|unauthenticated|session|workspace|rls|policy|permission)\b' -or $text -match '\bstorage\b.*\b(access|upload|bucket|object|permission)\b|\b(access|upload|bucket|object|permission)\b.*\bstorage\b' -or $text -match '\btenant\b.*\b(isolat|records?|access)\b|\b(isolat|records?|access)\b.*\btenant\b' -or $text -match '\b(fix|bug|issue)\b.*\blogin\b|\blogin\b.*\b(bug|issue|access|auth)\b'
     $isPackageRelease = $text -match '\b(development pack|skills package)\b' -and $text -match '\b(release|version|changelog|tag)\b'
     $isSaasRelease = $text -match '\bsaas\b' -and $text -match '\b(release|deploy|production)\b'
-    $isRelease = $isPackageRelease -or $isSaasRelease
+    $isReleaseReport = $text -match '\brelease report\b'
+    $isRelease = $isPackageRelease -or $isSaasRelease -or $isReleaseReport
     $hasPerformanceMetric = $text -match '\b(html|download|size|bytes?|weight|request|call|latency|slow|slowness|faster|render|rendering|paint|performance)\b'
     $hasPerformanceIntent = $text -match '\b(measure|audit|investigate|profile|improve|reduce|optimize|make|load|render)\b'
     $isPerformanceAudit = $hasPerformanceMetric -and $hasPerformanceIntent
@@ -705,14 +706,16 @@ function Get-DocumentationEvidenceOutcome {
 
     $hasSource = $text -match '(evidence source:|git log|drive connector)'
     $hasCheck = $text -match '(command:|check:|reread)'
-    $hasTimestamp = $text -match 'timestamp:'
+    $isoTimestamp = '20\d{2}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}z'
+    $hasTimestamp = $text -match "timestamp:\s*$isoTimestamp" -and $text -notmatch 'timestamp:\s*(now|unknown|n/a)'
     $hasCommitHash = $text -match 'commit\s+[0-9a-f]{7,40}'
     $isDrive = $text -match '\bdrive\b'
     if ($isDrive) {
-        $hasDriveMetadata = $text -match 'folder id:\s*[a-z0-9_-]+' -and $text -match 'file id:\s*[a-z0-9_-]+' -and $text -match 'size:' -and $text -match 'modified:' -and $text -match '(post-upload reread|reread after upload)'
+        $hasDriveMetadata = $text -match 'folder id:\s*(?!\.\.\.|unknown|n/a)[a-z0-9_-]+' -and $text -match 'file id:\s*(?!\.\.\.|unknown|n/a)[a-z0-9_-]+' -and $text -match 'size:\s*[1-9]\d*\s*bytes' -and $text -match "modified:\s*$isoTimestamp" -and $text -match 'post-upload reread confirmed (metadata|content)'
         $isDriveUpdate = $text -match '\b(update|overwrite|existing file)\b'
-        $hasBackupEvidence = $text -match 'pre-update (metadata|metadata read|read)' -and $text -match 'backup file id:\s*[a-z0-9_-]+' -and $text -match 'backup name:' -and $text -match 'backup size:' -and $text -match 'backup modified:' -and $text -match 'backup confirmation:' -and $text -match 'preserve original file id:\s*[a-z0-9_-]+'
-        $backupSatisfied = (-not $isDriveUpdate) -or $hasBackupEvidence
+        $hasBackupEvidence = $text -match 'pre-update (metadata|content) read confirmed' -and $text -match 'backup file id:\s*(?!\.\.\.|unknown|n/a)[a-z0-9_-]+' -and $text -match 'backup name:\s*\S*backup-\d{4}-\d{2}-\d{2}-\d{4}\S*' -and $text -match 'backup size:\s*[1-9]\d*\s*bytes' -and $text -match "backup modified:\s*$isoTimestamp" -and $text -match 'backup confirmation:\s*(confirmed.*reread|reread.*confirmed).*before update' -and $text -match 'preserve original file id:\s*(?!\.\.\.|unknown|n/a)[a-z0-9_-]+'
+        $hasNewFileBackupStatus = $text -match 'backup status:\s*not_applicable' -and $text -match 'reason:\s*.*(new[- ]file|no existing remote)'
+        $backupSatisfied = if ($isDriveUpdate) { $hasBackupEvidence } else { $hasNewFileBackupStatus }
         return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasDriveMetadata -and $backupSatisfied); confirmationScope = 'DRIVE' }
     }
     return [PSCustomObject]@{ evidenceCompleteness = ($hasSource -and $hasCheck -and $hasTimestamp -and $hasCommitHash); confirmationScope = 'LOCAL_ARTIFACT' }

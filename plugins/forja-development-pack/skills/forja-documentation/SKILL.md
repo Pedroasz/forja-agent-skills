@@ -35,7 +35,7 @@ Leia [evidence-schema.md](references/evidence-schema.md). Primeiro classifique c
 
 ## Required checks
 
-Valide que cada resultado executado ou observado possui fonte e comando/check; inclua timestamp quando o tempo altera o significado. Cite commit/hash para Git, URL para GitHub quando disponível, e Drive ID/size/modified metadata para Drive. Para update/overwrite, exija pre-update leitura e backup file ID, backup name, backup size, backup modified e backup confirmation antes da escrita; preserve original file ID ao atualizar com segurança e never delete history. Em upload de novo arquivo, registre backup como NOT_APPLICABLE com a razão. Redija segredos: nunca inclua secret, credential, token, chave, PII ou dados pessoais desnecessários.
+Valide que cada resultado executado ou observado possui fonte e comando/check; inclua timestamp ISO-8601, nunca `now`, quando o tempo altera o significado. Cite commit/hash para Git, URL para GitHub quando disponível, e Drive ID/size/modified metadata para Drive. Para update/overwrite, exija pre-update leitura confirmada e backup file ID não-placeholder, backup name timestampado, backup size positivo, backup modified ISO-8601 e backup confirmation de reread confirmado antes da escrita; preserve original file ID ao atualizar com segurança e never delete history. Em upload de novo arquivo, registre `Backup status: NOT_APPLICABLE` com reason explícita de novo arquivo/sem remoto existente. Redija segredos: nunca inclua secret, credential, token, chave, PII ou dados pessoais desnecessários.
 
 ## Stop conditions
 
