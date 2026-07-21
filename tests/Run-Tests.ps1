@@ -1321,6 +1321,28 @@ function Assert-LifecycleSuite {
         if ($moduleSource -notmatch 'function Invoke-ForjaGitClone' -or $moduleSource -notmatch 'function Invoke-ForjaGitCheckout') { Add-Failure 'installer git clone and checkout wrappers are missing' }
         $installerSource = Get-Content -LiteralPath $installerPath -Raw
         if (($installerSource | Select-String -Pattern '\$NonInteractive' -AllMatches).Matches.Count -lt 2) { Add-Failure 'NonInteractive has no explicit no-prompt contract' }
+        $oldUserProfile = $env:USERPROFILE; $sandboxHome = Join-Path $sandbox 'installer-home'; $env:USERPROFILE = $sandboxHome
+        try {
+            $source = Join-Path $sandbox 'installer-source'; New-Item -ItemType Directory -Path $source | Out-Null
+            Copy-Item -LiteralPath (Join-Path $repoRoot 'plugins') -Destination (Join-Path $source 'plugins') -Recurse
+            Set-Content -LiteralPath (Join-Path $source 'VERSION') -Value '1.0.0' -NoNewline
+            & git -C $source init -q; & git -C $source config user.email lifecycle@example.invalid; & git -C $source config user.name Lifecycle; & git -C $source add .; & git -C $source commit -qm fixture; & git -C $source tag v1.0.0; & git -C $source remote add origin 'https://github.com/Pedroasz/forja-agent-skills.git'
+            $foreignSkill = Join-Path $sandboxHome '.agents\skills\foreign-skill'; New-Item -ItemType Directory -Path $foreignSkill -Force | Out-Null; $foreignSkillFile = Join-Path $foreignSkill 'foreign.txt'; [IO.File]::WriteAllText($foreignSkillFile, 'foreign')
+            $sandboxMarketplace = Join-Path $sandboxHome '.agents\plugins\marketplace.json'; New-Item -ItemType Directory -Path (Split-Path -Parent $sandboxMarketplace) -Force | Out-Null; [IO.File]::WriteAllText($sandboxMarketplace, '{"name":"foreign","plugins":[{"name":"foreign-plugin","foreignMarker":"do-not-rewrite"}]}')
+            $foreignSkillBytes = [IO.File]::ReadAllBytes($foreignSkillFile); $foreignEntryBytes = [Text.Encoding]::UTF8.GetBytes('"name":"foreign-plugin","foreignMarker":"do-not-rewrite"')
+            $oldErrorAction = $ErrorActionPreference; $ErrorActionPreference = 'Continue'; $installOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $installerPath -CloneRoot $source -Version v1.0.0 -NonInteractive 2>&1; $ErrorActionPreference = $oldErrorAction
+            if ($LASTEXITCODE -ne 0) { Add-Failure ('installer E2E failed for the allowlisted sandbox repository: ' + ($installOutput -join ' ')); return }
+            $installed = Resolve-ForjaPaths -CloneRoot $source
+            $links = @(Get-ChildItem -LiteralPath $installed.SkillsRoot -Directory | Where-Object { $_.Name -like 'forja-*' })
+            if ($links.Count -ne 12 -or @($links | Where-Object { -not (Test-ForjaJunction -Path $_.FullName -ExpectedTarget (Join-Path $source ('plugins\forja-development-pack\skills\' + $_.Name))) }).Count -ne 0) { Add-Failure 'installer E2E did not create 12 verified skill junctions' }
+            if (-not (Test-ForjaJunction -Path $installed.PluginPath -ExpectedTarget (Join-Path $source 'plugins\forja-development-pack'))) { Add-Failure 'installer E2E did not create the plugin junction' }
+            $installedMarketBytes = [IO.File]::ReadAllBytes($installed.MarketplacePath)
+            if ($null -eq (Read-ForjaState -StatePath $installed.StatePath) -or @((Get-Content -LiteralPath $installed.MarketplacePath -Raw | ConvertFrom-Json).plugins | Where-Object { $_.name -eq 'forja-development-pack' }).Count -ne 1) { Add-Failure 'installer E2E did not write state and exactly one marketplace entry' }
+            if (-not [Linq.Enumerable]::SequenceEqual([IO.File]::ReadAllBytes($foreignSkillFile), $foreignSkillBytes) -or -not [Linq.Enumerable]::SequenceEqual($installedMarketBytes, [Text.Encoding]::UTF8.GetBytes((Get-Content -LiteralPath $installed.MarketplacePath -Raw))) -or -not ([Text.Encoding]::UTF8.GetString($installedMarketBytes).Contains([Text.Encoding]::UTF8.GetString($foreignEntryBytes)))) { Add-Failure 'installer E2E did not preserve foreign skill and marketplace entry bytes' }
+            & powershell -NoProfile -ExecutionPolicy Bypass -File $installerPath -CloneRoot $source -Version v1.0.0 -NonInteractive
+            if ($LASTEXITCODE -ne 0 -or -not [Linq.Enumerable]::SequenceEqual($installedMarketBytes, [IO.File]::ReadAllBytes($installed.MarketplacePath))) { Add-Failure 'installer E2E is not byte-idempotent' }
+        }
+        finally { $env:USERPROFILE = $oldUserProfile }
         Write-Output 'PASS: lifecycle suite'
     }
     finally { if (Test-Path -LiteralPath $sandbox) { Remove-Item -LiteralPath $sandbox -Recurse -Force } }
