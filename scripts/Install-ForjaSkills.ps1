@@ -9,20 +9,18 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ForjaSkills.Common.psm1') -Force
 
 try {
+    if ($NonInteractive) { $env:GIT_TERMINAL_PROMPT = '0'; Write-Verbose 'NonInteractive: prompts are disabled and any required interaction fails.' }
     $paths = Resolve-ForjaPaths -CloneRoot $CloneRoot
     $repository = if (Test-Path -LiteralPath (Join-Path $paths.CloneRoot '.git') -PathType Container) { $paths.CloneRoot } else { Join-Path $paths.CloneRoot 'forja-agent-skills' }
     if (-not (Get-Command git -CommandType Application -ErrorAction SilentlyContinue)) { throw 'Git is required for installation.' }
     if (-not (Test-Path -LiteralPath $repository -PathType Container)) {
-        New-Item -ItemType Directory -Path $paths.CloneRoot -Force | Out-Null
-        & git clone 'https://github.com/Pedroasz/forja-agent-skills.git' $repository
-        if ($LASTEXITCODE -ne 0) { throw 'Could not clone the allowlisted FORJA repository.' }
+        Invoke-ForjaGitClone -CloneRoot $paths.CloneRoot -RepositoryRoot $repository
     }
     Assert-ForjaOrigin -RepositoryRoot $repository | Out-Null
     Assert-ForjaCleanTree -RepositoryRoot $repository
     if ([string]::IsNullOrWhiteSpace($Version)) { $Version = 'v' + (Get-Content -LiteralPath (Join-Path $repository 'VERSION') -Raw).Trim() }
     $release = Get-ForjaStableVersion -RepositoryRoot $repository -Version $Version
-    & git -C $repository checkout --detach $release.Commit
-    if ($LASTEXITCODE -ne 0) { throw "Could not checkout $($release.Version)." }
+    Invoke-ForjaGitCheckout -RepositoryRoot $repository -Commit $release.Commit
     Invoke-ForjaValidation -RepositoryRoot $repository | Out-Null
 
     $skillSourceRoot = Join-Path $repository 'plugins\forja-development-pack\skills'
@@ -38,4 +36,4 @@ try {
     Write-Output "Installed FORJA skills $($release.Version). Restart Codex or start a new session to discover them."
     exit 0
 }
-catch { Write-Error $_.Exception.Message; exit 1 }
+catch { Write-Error $_.Exception.ToString(); exit 1 }

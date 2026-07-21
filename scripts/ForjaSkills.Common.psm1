@@ -10,9 +10,22 @@ function Invoke-ForjaGit {
     return @($output)
 }
 
+function Invoke-ForjaGitClone {
+    param([Parameter(Mandatory = $true)][string]$CloneRoot, [Parameter(Mandatory = $true)][string]$RepositoryRoot)
+    New-Item -ItemType Directory -Path $CloneRoot -Force | Out-Null
+    $output = & git clone $script:ForjaOrigin $RepositoryRoot 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "git clone failed: $($output -join [Environment]::NewLine)" }
+}
+
+function Invoke-ForjaGitCheckout {
+    param([Parameter(Mandatory = $true)][string]$RepositoryRoot, [Parameter(Mandatory = $true)][string]$Commit)
+    & cmd.exe /d /c "git -C `"$RepositoryRoot`" checkout --detach $Commit >nul 2>nul"
+    if ($LASTEXITCODE -ne 0) { throw 'git checkout failed.' }
+}
+
 function Resolve-ForjaPaths {
     param([Parameter(Mandatory = $true)][string]$CloneRoot)
-    $home = [Environment]::GetFolderPath('UserProfile')
+    $home = if ([string]::IsNullOrWhiteSpace($env:USERPROFILE)) { [Environment]::GetFolderPath('UserProfile') } else { $env:USERPROFILE }
     if ([string]::IsNullOrWhiteSpace($home)) { throw 'Unable to resolve the current user profile.' }
     $root = [System.IO.Path]::GetFullPath($CloneRoot)
     [pscustomobject][ordered]@{
@@ -63,13 +76,22 @@ function Write-ForjaJsonAtomic {
     $directory = Split-Path -Parent $Path
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
     $temporary = Join-Path $directory ('.' + [System.IO.Path]::GetFileName($Path) + '.' + [guid]::NewGuid().ToString('N') + '.tmp')
+    $replacementBackup = Join-Path $directory ('.' + [System.IO.Path]::GetFileName($Path) + '.' + [guid]::NewGuid().ToString('N') + '.replace-backup')
     try {
-        $json = $Value | ConvertTo-Json -Depth 12
+        $json = if ($Value -is [string]) { $Value } else { $Value | ConvertTo-Json -Depth 12 }
         $json | ConvertFrom-Json -ErrorAction Stop | Out-Null
         [System.IO.File]::WriteAllText($temporary, $json, (New-Object System.Text.UTF8Encoding($false)))
-        Move-Item -LiteralPath $temporary -Destination $Path -Force
+        if (Test-Path -LiteralPath $Path -PathType Leaf) {
+            [System.IO.File]::Replace($temporary, $Path, $replacementBackup)
+        }
+        else {
+            Move-Item -LiteralPath $temporary -Destination $Path
+        }
     }
-    finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
+    finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+        if (Test-Path -LiteralPath $replacementBackup) { Remove-Item -LiteralPath $replacementBackup -Force }
+    }
 }
 
 function Test-ForjaJunction {
@@ -98,12 +120,20 @@ function Set-ForjaJunction {
 
 function Update-ForjaMarketplace {
     param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$PluginPath)
-    $marketplace = if (Test-Path -LiteralPath $Path -PathType Leaf) { try { Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -ErrorAction Stop } catch { throw "Marketplace JSON is invalid: $Path" } } else { [pscustomobject]@{ name = 'forja-development'; interface = [pscustomobject]@{ displayName = 'FORJA Development Pack' }; plugins = @() } }
-    $plugins = @($marketplace.plugins | Where-Object { $_.name -ne $script:ForjaPluginName })
-    $entry = [pscustomobject][ordered]@{ name = $script:ForjaPluginName; source = [pscustomobject][ordered]@{ source = 'local'; path = './plugins/forja-development-pack' }; policy = [pscustomobject][ordered]@{ installation = 'AVAILABLE'; authentication = 'ON_USE' }; category = 'Developer Tools' }
-    $marketplace | Add-Member -NotePropertyName plugins -NotePropertyValue @($plugins + $entry) -Force
+    $raw = if (Test-Path -LiteralPath $Path -PathType Leaf) { Get-Content -LiteralPath $Path -Raw } else { '{"name":"forja-development","interface":{"displayName":"FORJA Development Pack"},"plugins":[]}' }
+    try { $marketplace = $raw | ConvertFrom-Json -ErrorAction Stop } catch { throw "Marketplace JSON is invalid: $Path" }
+    if ($null -eq $marketplace.plugins) { throw "Marketplace plugins array is missing: $Path" }
+    if (@($marketplace.plugins | Where-Object { $_.name -eq $script:ForjaPluginName }).Count -gt 0) { return [pscustomobject]@{ Path = $Path; PluginPath = $PluginPath; Changed = $false } }
+    $pluginsKey = $raw.IndexOf('"plugins"')
+    $arrayStart = if ($pluginsKey -lt 0) { -1 } else { $raw.IndexOf('[', $pluginsKey) }
+    $arrayEnd = $raw.LastIndexOf(']')
+    if ($arrayStart -lt 0 -or $arrayEnd -le $arrayStart) { throw "Marketplace plugins array cannot be updated safely: $Path" }
+    $entryJson = '{"name":"forja-development-pack","source":{"source":"local","path":"./plugins/forja-development-pack"},"policy":{"installation":"AVAILABLE","authentication":"ON_USE"},"category":"Developer Tools"}'
+    $between = $raw.Substring($arrayStart + 1, $arrayEnd - $arrayStart - 1)
+    $separator = if ([string]::IsNullOrWhiteSpace($between)) { '' } else { ',' }
+    $updatedRaw = $raw.Substring(0, $arrayEnd) + $separator + $entryJson + $raw.Substring($arrayEnd)
     if (Test-Path -LiteralPath $Path -PathType Leaf) { Copy-Item -LiteralPath $Path -Destination ($Path + '.backup-' + (Get-Date -Format 'yyyyMMddHHmmss')) -ErrorAction Stop }
-    Write-ForjaJsonAtomic -Path $Path -Value $marketplace
+    Write-ForjaJsonAtomic -Path $Path -Value $updatedRaw
     [pscustomobject]@{ Path = $Path; PluginPath = $PluginPath; Changed = $true }
 }
 
@@ -125,4 +155,4 @@ function Invoke-ForjaValidation {
     [pscustomobject]@{ RepositoryRoot = $RepositoryRoot; SkillCount = $skills.Count; Valid = $true }
 }
 
-Export-ModuleMember -Function Resolve-ForjaPaths, Assert-ForjaOrigin, Assert-ForjaCleanTree, Get-ForjaStableVersion, Read-ForjaState, Write-ForjaJsonAtomic, Test-ForjaJunction, Set-ForjaJunction, Update-ForjaMarketplace, Remove-ForjaMarketplaceEntry, Invoke-ForjaValidation
+Export-ModuleMember -Function Resolve-ForjaPaths, Assert-ForjaOrigin, Assert-ForjaCleanTree, Get-ForjaStableVersion, Read-ForjaState, Write-ForjaJsonAtomic, Test-ForjaJunction, Set-ForjaJunction, Update-ForjaMarketplace, Remove-ForjaMarketplaceEntry, Invoke-ForjaValidation, Invoke-ForjaGitClone, Invoke-ForjaGitCheckout
