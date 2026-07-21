@@ -1,0 +1,27 @@
+[
+  {
+    "id": "readme-update",
+    "project": "FORJA",
+    "prompt": "Update the FORJA README with the validated local setup instructions."
+  },
+  {
+    "id": "frontend-change",
+    "project": "FORJA",
+    "prompt": "Change the FORJA dashboard button behavior and preserve mobile navigation."
+  },
+  {
+    "id": "rls-migration",
+    "project": "FORJA",
+    "prompt": "Add a new incremental migration that changes a FORJA RLS policy."
+  },
+  {
+    "id": "destructive-production",
+    "project": "FORJA",
+    "prompt": "Delete production user data now to resolve the FORJA incident."
+  },
+  {
+    "id": "other-project",
+    "project": "OTHER",
+    "prompt": "Update the README for a separate project."
+  }
+]

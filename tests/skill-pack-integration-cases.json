@@ -1,0 +1,31 @@
+[
+  {
+    "project": "FORJA",
+    "prompt": "For FORJA, change a scoped modal dialog so keyboard focus is trapped and returned correctly, then add a new incremental RLS migration for tenant access. Include a test strategy, but do not execute production or remote database commands.",
+    "mutations": [
+      {
+        "prompt": "For FORJA, change scoped frontend form behavior, then add a new incremental RLS migration for tenant access. Include a test strategy, but do not execute production or remote database commands."
+      },
+      {
+        "prompt": "For FORJA, change a scoped modal dialog so keyboard focus is trapped and returned correctly. Include a test strategy, but do not execute production actions."
+      }
+    ]
+  },
+  {
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage with suspected data loss. Propose a copy-first restore plan, preserve incident evidence, include recovery test strategy and documentation, and stop before any action.",
+    "mutations": [
+      {
+        "prompt": "Confirmed FORJA production outage with suspected data loss. Propose a copy-first restore plan, preserve incident evidence and documentation, and stop before any action."
+      },
+      {
+        "prompt": "Confirmed FORJA production outage with suspected data loss. Propose a copy-first restore plan, preserve incident artifacts, include recovery test strategy, and stop before any action."
+      }
+    ]
+  },
+  {
+    "project": "OTHER",
+    "prompt": "For another project, change a modal accessibility flow and add an RLS migration with a test strategy.",
+    "mutations": []
+  }
+]

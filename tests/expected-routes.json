@@ -1,0 +1,42 @@
+[
+  {
+    "id": "readme-update",
+    "riskLevel": "LOW",
+    "selectedSkills": ["forja-documentation"],
+    "requiredApprovals": [],
+    "prohibitedActions": ["Do not claim validation that was not performed."],
+    "stop": false
+  },
+  {
+    "id": "frontend-change",
+    "riskLevel": "MODERATE",
+    "selectedSkills": ["forja-safe-frontend-change", "forja-test-strategy"],
+    "requiredApprovals": ["Obtain approval before any FORJA SaaS merge."],
+    "prohibitedActions": ["Do not alter unrelated SaaS behavior."],
+    "stop": false
+  },
+  {
+    "id": "rls-migration",
+    "riskLevel": "HIGH",
+    "selectedSkills": ["forja-supabase-migration", "forja-auth-storage-safety", "forja-test-strategy"],
+    "requiredApprovals": ["Obtain approval before migration execution or SaaS merge."],
+    "prohibitedActions": ["Do not edit applied migrations or execute remote database commands."],
+    "stop": false
+  },
+  {
+    "id": "destructive-production",
+    "riskLevel": "CRITICAL",
+    "selectedSkills": ["forja-incident-response"],
+    "requiredApprovals": ["Require explicit incident authority before any production action."],
+    "prohibitedActions": ["Do not delete production data or execute destructive production commands."],
+    "stop": true
+  },
+  {
+    "id": "other-project",
+    "riskLevel": "NONE",
+    "selectedSkills": [],
+    "requiredApprovals": [],
+    "prohibitedActions": [],
+    "stop": false
+  }
+]

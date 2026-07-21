@@ -1,0 +1,504 @@
+[
+  {
+    "id": "ux-contrast-issue",
+    "project": "FORJA",
+    "prompt": "Fix the insufficient contrast of the FORJA checkout button text for keyboard users.",
+    "mutatedPrompt": "Update the FORJA profile copy shown after a login."
+  },
+  {
+    "id": "ux-modal-focus",
+    "project": "FORJA",
+    "prompt": "Fix focus order and focus return in the FORJA confirmation modal dialog.",
+    "mutatedPrompt": "Update the FORJA profile copy shown after a login."
+  },
+  {
+    "id": "ux-mobile-form-errors",
+    "project": "FORJA",
+    "prompt": "Fix inaccessible error feedback and labels in the FORJA mobile checkout form.",
+    "mutatedPrompt": "Refactor the FORJA backend API handler to simplify its response mapping."
+  },
+  {
+    "id": "ux-backend-preferences-anti-trigger",
+    "project": "FORJA",
+    "prompt": "Refactor the FORJA backend API that records accessibility contrast preferences.",
+    "mutatedPrompt": "Fix the insufficient contrast of the FORJA checkout button text for keyboard users."
+  },
+  {
+    "id": "ux-full-redesign-anti-trigger",
+    "project": "FORJA",
+    "prompt": "Perform a full redesign of the FORJA modal dialog with focus improvements.",
+    "mutatedPrompt": "Fix focus order and focus return in the FORJA confirmation modal dialog."
+  },
+  {
+    "id": "ux-observable-ui-with-backend-context",
+    "project": "FORJA",
+    "prompt": "Fix the FORJA checkout modal focus return in the observable UI; the backend already records the preference.",
+    "mutatedPrompt": "Refactor the FORJA backend API that records accessibility contrast preferences."
+  },
+  {
+    "id": "backend-only-task",
+    "project": "FORJA",
+    "prompt": "Refactor the FORJA backend API handler to simplify its response mapping."
+  },
+  {
+    "id": "project-focus-docs",
+    "project": "FORJA",
+    "prompt": "Update FORJA documentation with the project focus for the next quarter."
+  },
+  {
+    "id": "modal-documentation",
+    "project": "FORJA",
+    "prompt": "Document the FORJA modal component API in the README."
+  },
+  {
+    "id": "button-change",
+    "project": "FORJA",
+    "prompt": "Change the FORJA dashboard button behavior.",
+    "mutatedPrompt": "Update the FORJA README documentation for the dashboard button."
+  },
+  {
+    "id": "mobile-navigation",
+    "project": "FORJA",
+    "prompt": "Fix FORJA mobile navigation after changing the menu UI.",
+    "mutatedPrompt": "Document the FORJA mobile navigation in the README."
+  },
+  {
+    "id": "docs-only-edit",
+    "project": "FORJA",
+    "prompt": "Update FORJA documentation with the validated local setup instructions."
+  },
+  {
+    "id": "login-bug",
+    "project": "FORJA",
+    "prompt": "Fix the FORJA login bug that lets an unauthenticated visitor load a workspace.",
+    "mutatedPrompt": "Change the profile copy shown after a FORJA login."
+  },
+  {
+    "id": "profile-copy",
+    "project": "FORJA",
+    "prompt": "Change the profile copy shown after a FORJA login."
+  },
+  {
+    "id": "auth-tenant-profile-mixed",
+    "project": "FORJA",
+    "prompt": "Fix FORJA authentication for a tenant and update the profile copy.",
+    "mutatedPrompt": "Update the FORJA profile copy only."
+  },
+  {
+    "id": "hypothetical-rls-migration",
+    "project": "FORJA",
+    "prompt": "Hypothetically, how would a new FORJA RLS migration isolate workspace records by tenant? Do not execute it.",
+    "mutatedPrompt": "Explain a generic access-control concept in documentation only."
+  },
+  {
+    "id": "table-index-migration",
+    "project": "FORJA",
+    "prompt": "Create a new incremental FORJA migration to add an index for tenant_id queries.",
+    "mutatedPrompt": "Document how FORJA tenants organize their query workload."
+  },
+  {
+    "id": "rls-policy-migration",
+    "project": "FORJA",
+    "prompt": "Add a FORJA RLS policy in a new migration for workspace records.",
+    "mutatedPrompt": "Update the FORJA profile copy for workspace records."
+  },
+  {
+    "id": "hypothetical-database-question",
+    "project": "FORJA",
+    "prompt": "Hypothetically, what would a new FORJA database migration need to isolate tenant records? Do not execute it.",
+    "mutatedPrompt": "Explain generic database isolation in documentation only."
+  },
+  {
+    "id": "package-docs-only-release",
+    "project": "FORJA",
+    "prompt": "Prepare the FORJA Development Pack docs-only skills package release with validated changelog and version evidence.",
+    "mutatedPrompt": "Update the FORJA Development Pack README with validated local setup instructions."
+  },
+  {
+    "id": "package-docs-only-release-complete",
+    "project": "FORJA",
+    "prompt": "Prepare the FORJA Development Pack docs-only skills package release: remote branch protection confirmed; required CI checks passed for the candidate commit; required reviews approved with no blockers; validation evidence matches the diff; VERSION, manifest, and changelog are consistent; annotated tag provenance points to the approved candidate commit.",
+    "mutatedPrompt": "Prepare the FORJA Development Pack docs-only skills package release: remote branch protection confirmed; required CI checks passed for the candidate commit; required reviews approved with no blockers; validation evidence matches the diff; VERSION, manifest, and changelog are consistent."
+  },
+  {
+    "id": "functional-saas-release",
+    "project": "FORJA",
+    "prompt": "Prepare the release of a functional FORJA SaaS dashboard change after its checks pass.",
+    "mutatedPrompt": "Prepare the release notes for a documentation-only FORJA Development Pack skills change."
+  },
+  {
+    "id": "functional-saas-release-with-evidence",
+    "project": "FORJA",
+    "prompt": "Prepare the functional FORJA SaaS dashboard release: remote branch protection confirmed; required CI checks passed for the candidate commit; required reviews approved with no blockers; validation evidence matches the diff; VERSION, manifest, and changelog are consistent; annotated tag provenance points to the approved candidate commit."
+  },
+  {
+    "id": "high-risk-saas-release",
+    "project": "FORJA",
+    "prompt": "Prepare the FORJA SaaS release that includes an RLS migration after checks pass.",
+    "mutatedPrompt": "Prepare the FORJA Development Pack documentation-only skills release with evidence."
+  },
+  {
+    "id": "independent-code-pr-review",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code PR independently before deciding whether it can merge; inspect the diff and report findings.",
+    "mutatedPrompt": "Implement the FORJA code change described in the diff."
+  },
+  {
+    "id": "independent-documentation-pr-review",
+    "project": "FORJA",
+    "prompt": "Independently review this FORJA documentation PR and its diff before merge, with evidence for every finding.",
+    "mutatedPrompt": "Update the FORJA documentation with the reviewed content."
+  },
+  {
+    "id": "independent-review-pressure",
+    "project": "FORJA",
+    "prompt": "Review this FORJA PR independently and approve quickly if possible; inspect the actual diff and keep merge gates evidence-based.",
+    "mutatedPrompt": "Write a quick FORJA project status note."
+  },
+  {
+    "id": "independent-code-change-before-merge",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code change before merge and report evidence-based findings.",
+    "mutatedPrompt": "Implement this FORJA code change before merge."
+  },
+  {
+    "id": "independent-critical-finding-review",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code PR before merge: a Critical finding remains open in the diff.",
+    "mutatedPrompt": "Review this FORJA code PR before merge: the Critical finding is Fixed and re-review is complete."
+  },
+  {
+    "id": "independent-fixed-pending-rereview",
+    "project": "FORJA",
+    "prompt": "Review this FORJA code PR before merge: a High finding is Fixed pending re-review.",
+    "mutatedPrompt": "Review this FORJA code PR before merge: the High finding is Fixed and re-review is complete."
+  },
+  {
+    "id": "independent-accepted-risk-without-authority",
+    "project": "FORJA",
+    "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk but no authority is identified.",
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk; explicit risk authority: Maria Silva; re-review is complete."
+  },
+  {
+    "id": "independent-accepted-risk-generic-authority",
+    "project": "FORJA",
+    "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk by explicit risk authority and re-review is complete.",
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk; explicit risk authority: Security Director; re-review is complete."
+  },
+  {
+    "id": "independent-accepted-risk-authority-pending-rereview",
+    "project": "FORJA",
+    "prompt": "Review this FORJA documentation PR before merge: a High finding is Accepted risk; explicit risk authority: AUTH-42; re-review pending.",
+    "mutatedPrompt": "Review this FORJA documentation PR before merge: the High finding is Accepted risk; explicit risk authority: AUTH-42; re-review is complete."
+  },
+  {
+    "id": "independent-review-other-project",
+    "project": "OTHER",
+    "prompt": "Review this code change before merge and report evidence-based findings."
+  },
+  {
+    "id": "performance-html-download-size",
+    "project": "FORJA",
+    "prompt": "Measure the FORJA HTML download size before reducing it.",
+    "mutatedPrompt": "Document the FORJA performance review in the README."
+  },
+  {
+    "id": "performance-repeated-requests",
+    "project": "FORJA",
+    "prompt": "Audit repeated network requests and latency in the FORJA dashboard.",
+    "mutatedPrompt": "Update the FORJA README with repeated network request guidance."
+  },
+  {
+    "id": "performance-vague-make-faster",
+    "project": "FORJA",
+    "prompt": "Make the FORJA dashboard faster.",
+    "mutatedPrompt": "Measure FORJA dashboard render latency before changing it."
+  },
+  {
+    "id": "performance-database-latency",
+    "project": "FORJA",
+    "prompt": "Audit FORJA database latency before improving the query path.",
+    "mutatedPrompt": "Update the FORJA database performance review documentation."
+  },
+  {
+    "id": "performance-storage-request-latency",
+    "project": "FORJA",
+    "prompt": "Measure FORJA Storage request latency before changing it.",
+    "mutatedPrompt": "Update the FORJA Storage request performance documentation."
+  },
+  {
+    "id": "performance-rls-database-latency",
+    "project": "FORJA",
+    "prompt": "Measure FORJA RLS database latency before changing the policy.",
+    "mutatedPrompt": "Update the FORJA RLS database performance documentation."
+  },
+  {
+    "id": "test-strategy-docs",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA README documentation change.",
+    "mutatedPrompt": "Create a test strategy for a FORJA RLS policy migration and README documentation change."
+  },
+  {
+    "id": "test-strategy-frontend",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA dashboard navigation button change on desktop and mobile."
+  },
+  {
+    "id": "test-strategy-rls",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA RLS policy migration with tenant isolation.",
+    "mutatedPrompt": "Create a test strategy for FORJA README documentation only."
+  },
+  {
+    "id": "test-strategy-portuguese-rls",
+    "project": "FORJA",
+    "prompt": "Crie uma estratégia de testes para uma migração de política RLS do FORJA com isolamento de tenant.",
+    "mutatedPrompt": "Crie uma matriz de testes para uma alteração de botão e navegação do dashboard FORJA."
+  },
+  {
+    "id": "test-strategy-portuguese-plan-scope",
+    "project": "FORJA",
+    "prompt": "Defina um plano de testes e escopo de validação para uma migração RLS do FORJA com isolamento de tenant.",
+    "mutatedPrompt": "Defina um plano de testes para a documentação README do FORJA."
+  },
+  {
+    "id": "test-strategy-portuguese-documentation",
+    "project": "FORJA",
+    "prompt": "Crie uma estratégia de testes para uma alteração de documentação do FORJA.",
+    "mutatedPrompt": "Crie uma matriz de testes para uma alteração FORJA."
+  },
+  {
+    "id": "test-strategy-portuguese-generic-plan-scope",
+    "project": "FORJA",
+    "prompt": "Defina um plano de testes e escopo de validação para uma alteração FORJA."
+  },
+  {
+    "id": "test-strategy-mixed-ui-rls",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for a FORJA RLS policy migration that changes dashboard navigation on desktop and mobile.",
+    "mutatedPrompt": "Create a test strategy for a FORJA RLS policy migration with tenant isolation only."
+  },
+  {
+    "id": "test-strategy-other-project",
+    "project": "OTHER",
+    "prompt": "Crie uma estratégia de testes para uma alteração de documentação."
+  },
+  {
+    "id": "test-strategy-non-strategy",
+    "project": "FORJA",
+    "prompt": "Crie uma alteração de documentação do FORJA."
+  },
+  {
+    "id": "test-strategy-release",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for the functional FORJA SaaS dashboard release after checks pass.",
+    "mutatedPrompt": "Create a test strategy for a FORJA README documentation change."
+  },
+  {
+    "id": "test-strategy-production-gate",
+    "project": "FORJA",
+    "prompt": "Create a test strategy for non-mutating observation of a FORJA RLS policy migration in production.",
+    "mutatedPrompt": "Create a test strategy to execute a FORJA RLS policy migration in production."
+  },
+  {
+    "id": "performance-review-docs-only",
+    "project": "FORJA",
+    "prompt": "Update the FORJA performance review documentation in the README."
+  },
+  {
+    "id": "documentation-adr-evidence",
+    "project": "FORJA",
+    "prompt": "Write a FORJA ADR. Evidence source: git log. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the reviewed local artifact.",
+    "mutatedPrompt": "Write a FORJA ADR. Evidence source: git log. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. The reviewed local artifact is ready."
+  },
+  {
+    "id": "documentation-drive-report-evidence",
+    "project": "FORJA",
+    "prompt": "Prepare a FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata.",
+    "mutatedPrompt": "Prepare a FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata."
+  },
+  {
+    "id": "documentation-evidence-source-mutation",
+    "project": "FORJA",
+    "prompt": "Write a FORJA ADR. Evidence source: git log. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the local artifact.",
+    "mutatedPrompt": "Write a FORJA ADR. Command: git rev-parse HEAD. Timestamp: 2026-07-18T12:00:00Z. Commit 7fb0f14 documents the local artifact."
+  },
+  {
+    "id": "documentation-drive-update-backup",
+    "project": "FORJA",
+    "prompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z.\nFolder ID: folder-42\nFile ID: file-42\nSize: 2048 bytes\nModified: 2026-07-18T12:01:00Z\nPost-upload reread confirmed metadata\nPre-update metadata read confirmed\nBackup file ID: backup-42\nBackup name: report.backup-2026-07-18-1200.md\nBackup size: 1024 bytes\nBackup modified: 2026-07-18T11:59:00Z\nBackup confirmation: confirmed reread before update\nPreserve original file ID: file-42",
+    "mutatedPrompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: file-42. Size: 2048 bytes. Modified: 2026-07-18T12:01:00Z. Post-upload reread confirmed metadata. Pre-update metadata read. Preserve original file ID: file-42."
+  },
+  {
+    "id": "documentation-drive-primary-metadata-not-backup",
+    "project": "FORJA",
+    "prompt": "Update an existing FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z. Folder ID: folder-42. File ID: unknown. Size: N/A. Modified: unknown. Post-upload reread confirmed metadata. Pre-update metadata read confirmed. Backup file ID: backup-42. Backup name: report.backup-2026-07-18-1200.md. Backup size: 1024 bytes. Backup modified: 2026-07-18T11:59:00Z. Backup confirmation: confirmed reread before update. Preserve original file ID: file-42."
+  },
+  {
+    "id": "documentation-drive-new-file-backup-not-applicable",
+    "project": "FORJA",
+    "prompt": "Upload a new FORJA Drive release report. Evidence source: Drive connector. Check: reread. Timestamp: 2026-07-18T12:00:00Z.\nFolder ID: folder-42\nFile ID: file-42\nSize: 2048 bytes\nModified: 2026-07-18T12:01:00Z\nPost-upload reread confirmed metadata\nBackup status: NOT_APPLICABLE\nReason: new-file upload has no existing remote file"
+  },
+  {
+    "id": "documentation-id-not-routing",
+    "project": "FORJA",
+    "prompt": "FORJA folder ID: folder-42; file ID: file-42."
+  },
+  {
+    "id": "incident-hypothetical-sync",
+    "project": "FORJA",
+    "prompt": "Hypothetically, how should FORJA plan for a production sync incident with possible data loss? Do not execute any incident action.",
+    "mutatedPrompt": "Confirmed FORJA production outage from sync loss: preserve timestamps, snapshot hash, log reference, chain and owner; do not restart."
+  },
+  {
+    "id": "incident-confirmed-outage",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage: preserve timestamps, snapshot hash, log reference, chain and owner before any fix; no restart.",
+    "mutatedPrompt": "Hypothetically, how should FORJA plan for a production sync incident with possible data loss? Do not execute any incident action."
+  },
+  {
+    "id": "incident-ordinary-local-bug",
+    "project": "FORJA",
+    "prompt": "Fix a local FORJA button bug in the development environment.",
+    "mutatedPrompt": "Confirmed FORJA production error causing an outage: preserve timestamps, snapshot hash, log reference, chain and owner before any fix."
+  },
+  {
+    "id": "incident-authorized-reversible-containment",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: now. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-missing-valid-timestamp",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: now. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-missing-artifact-reference",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: unknown. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. snapshot: snapshots/checkout-outage-42. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-missing-log-reference",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: unknown. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-missing-chain-trail",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: yes. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-missing-identified-owner",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: unknown. explicit incident authority: Operations Director. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-missing-structured-authority",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: yes. authorized reversible containment.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-destructive-action-stays-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. execute destructive fix.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-execute-destructive-production-action-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. execute destructive production action.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-delete-production-data-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. delete production data.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-drop-truncate-production-data-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. drop and truncate production data.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-purge-production-logs-blocked",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. purge production logs.",
+    "mutatedPrompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment."
+  },
+  {
+    "id": "incident-no-delete-evidence-plan-allows-containment",
+    "project": "FORJA",
+    "prompt": "Confirmed FORJA production outage. timestamp: 2026-07-18T12:01:00Z. hash: sha256:abcd1234. log reference: logs/checkout-outage-42. chain of custody: Ana Silva -> Bruno Costa. owner: Ana Silva. explicit incident authority: Operations Director. authorized reversible containment. do not delete production data while preserving evidence."
+  },
+  {
+    "id": "data-recovery-cache-rollback",
+    "project": "FORJA",
+    "prompt": "Plan a FORJA cache rollback. Copy-first: immutable snapshot: cache-snap-42; backup reference: backups/cache-42. source: cache/version-42. target: cache/key/session-9. Read-only dry-run passed. Minimum scope: one cache key. Before count: 1; before checksum: sha256:abcd1234; after count: 1; after checksum: sha256:abcd1234. rollback-of-recovery: restore cache-snap-42. Post-verify: read key and compare checksum. Do not execute.",
+    "mutatedPrompt": "Plan a FORJA cache rollback. Copy-first: immutable snapshot: placeholder; backup reference: backups/cache-42. source: cache/version-42. target: cache/key/session-9. Read-only dry-run passed. Minimum scope: one cache key. Before count: 1; before checksum: sha256:abcd1234; after count: 1; after checksum: sha256:abcd1234. rollback-of-recovery: restore cache-snap-42. Post-verify: read key and compare checksum. Do not execute."
+  },
+  {
+    "id": "data-recovery-migration-recovery",
+    "project": "FORJA",
+    "prompt": "Plan FORJA recovery after a confirmed production migration incident affecting RLS tenant records. Copy-first: immutable snapshot: db-snap-42; backup reference: backups/db-42. source: migration/20260718. target: tenant-42 records. Read-only dry-run passed. Minimum scope: tenant-42 only. Before row count: 4; before checksum: sha256:abcd1234; after row count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: reapply db-snap-42. Post-verify: authenticated actor and other tenant checks. Do not execute."
+  },
+  {
+    "id": "data-recovery-production-restore-blocked",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. Post-verify: compare file count and checksum.",
+    "mutatedPrompt": "Restore FORJA production data now. requested environment: production. requested action: restore prod-snap-42. requested scope: tenant-42 files. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: staging; action: restore prod-snap-42; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-destructive-intent-blocked",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data and delete all backups. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-mismatched-authorization-environment",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. requested environment: production. requested action: restore prod-snap-42. requested scope: tenant-42 files. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: staging; action: restore prod-snap-42; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-mismatched-authorization-action",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. requested environment: production. requested action: restore prod-snap-42. requested scope: tenant-42 files. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore older-snap-41; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-mismatched-authorization-scope",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. requested environment: production. requested action: restore prod-snap-42. requested scope: tenant-42 files. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production tenant-42 files. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: tenant-43 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-source-equals-target",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. requested environment: production. requested action: restore prod-snap-42. requested scope: tenant-42 files. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: prod-snap-42. Read-only dry-run passed. Minimum scope: tenant-42 files. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: tenant-42 files. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-all-data-scope",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now. requested environment: production. requested action: restore prod-snap-42. requested scope: all data. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: production data. Read-only dry-run passed. Minimum scope: all data. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: all data. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "data-recovery-truncate-tenant-records",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data and truncate tenant records. requested environment: production. requested action: restore prod-snap-42. requested scope: tenant-42 records. Copy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. source: prod-snap-42. target: tenant-42 records. Read-only dry-run passed. Minimum scope: tenant-42 records. Before row count: 4; before checksum: sha256:abcd1234; after row count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. specific authorization: environment: production; action: restore prod-snap-42; scope: tenant-42 records. Post-verify: compare row count and checksum."
+  },
+  {
+    "id": "data-recovery-complete-production-restore",
+    "project": "FORJA",
+    "prompt": "Restore FORJA production data now.\nrequested environment: production\nrequested action: restore prod-snap-42\nrequested scope: tenant-42 files\nsource: prod-snap-42\ntarget: production tenant-42 files\nminimum scope: tenant-42 files\nauthorization environment: production\nauthorization action: restore prod-snap-42\nauthorization scope: tenant-42 files\nCopy-first: immutable snapshot: prod-snap-42; backup reference: backups/prod-42. Read-only dry-run passed. Before file count: 4; before checksum: sha256:abcd1234; after file count: 4; after checksum: sha256:abcd1234. rollback-of-recovery: restore prod-snap-42. Post-verify: compare file count and checksum."
+  },
+  {
+    "id": "documentation-academic-anti-trigger",
+    "project": "OTHER",
+    "prompt": "Edit this academic essay for clarity and citations."
+  }
+]
