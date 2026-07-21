@@ -1,0 +1,128 @@
+Set-StrictMode -Version Latest
+
+$script:ForjaOrigin = 'https://github.com/Pedroasz/forja-agent-skills.git'
+$script:ForjaPluginName = 'forja-development-pack'
+
+function Invoke-ForjaGit {
+    param([string]$RepositoryRoot, [string[]]$Arguments)
+    $output = & git -C $RepositoryRoot @Arguments 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "git $($Arguments -join ' ') failed: $($output -join [Environment]::NewLine)" }
+    return @($output)
+}
+
+function Resolve-ForjaPaths {
+    param([Parameter(Mandatory = $true)][string]$CloneRoot)
+    $home = [Environment]::GetFolderPath('UserProfile')
+    if ([string]::IsNullOrWhiteSpace($home)) { throw 'Unable to resolve the current user profile.' }
+    $root = [System.IO.Path]::GetFullPath($CloneRoot)
+    [pscustomobject][ordered]@{
+        UserHome = $home
+        CodexHome = if ([string]::IsNullOrWhiteSpace($env:CODEX_HOME)) { Join-Path $home '.codex' } else { $env:CODEX_HOME }
+        CloneRoot = $root
+        AgentsRoot = Join-Path $home '.agents'
+        SkillsRoot = Join-Path $home '.agents\skills'
+        PluginsRoot = Join-Path $home '.agents\plugins'
+        PluginPath = Join-Path $home '.agents\plugins\forja-development-pack'
+        MarketplacePath = Join-Path $home '.agents\plugins\marketplace.json'
+        StatePath = Join-Path $home '.forja-agent-skills\state.json'
+    }
+}
+
+function Assert-ForjaOrigin {
+    param([Parameter(Mandatory = $true)][string]$RepositoryRoot)
+    $origin = (Invoke-ForjaGit -RepositoryRoot $RepositoryRoot -Arguments @('remote', 'get-url', 'origin') | Select-Object -First 1).Trim()
+    if ($origin -cne $script:ForjaOrigin) { throw "Repository origin is not allowlisted: $origin" }
+    return $origin
+}
+
+function Assert-ForjaCleanTree {
+    param([Parameter(Mandatory = $true)][string]$RepositoryRoot)
+    $changes = Invoke-ForjaGit -RepositoryRoot $RepositoryRoot -Arguments @('status', '--porcelain')
+    if (@($changes | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) { throw 'Repository working tree is dirty.' }
+}
+
+function Get-ForjaStableVersion {
+    param([Parameter(Mandatory = $true)][string]$RepositoryRoot, [Parameter(Mandatory = $true)][string]$Version)
+    if ($Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw "Version must be a stable SemVer tag: $Version" }
+    $tags = Invoke-ForjaGit -RepositoryRoot $RepositoryRoot -Arguments @('tag', '--list', $Version)
+    if (@($tags | Where-Object { $_.Trim() -ceq $Version }).Count -ne 1) { throw "Stable tag was not found: $Version" }
+    $commit = (Invoke-ForjaGit -RepositoryRoot $RepositoryRoot -Arguments @('rev-list', '-n', '1', $Version) | Select-Object -First 1).Trim()
+    if ($commit -notmatch '^[0-9a-f]{40}$') { throw "Stable tag did not resolve to an exact commit: $Version" }
+    [pscustomobject][ordered]@{ Version = $Version; Commit = $commit }
+}
+
+function Read-ForjaState {
+    param([Parameter(Mandatory = $true)][string]$StatePath)
+    if (-not (Test-Path -LiteralPath $StatePath -PathType Leaf)) { return $null }
+    try { return (Get-Content -LiteralPath $StatePath -Raw | ConvertFrom-Json -ErrorAction Stop) }
+    catch { throw "State JSON is invalid: $StatePath" }
+}
+
+function Write-ForjaJsonAtomic {
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)]$Value)
+    $directory = Split-Path -Parent $Path
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    $temporary = Join-Path $directory ('.' + [System.IO.Path]::GetFileName($Path) + '.' + [guid]::NewGuid().ToString('N') + '.tmp')
+    try {
+        $json = $Value | ConvertTo-Json -Depth 12
+        $json | ConvertFrom-Json -ErrorAction Stop | Out-Null
+        [System.IO.File]::WriteAllText($temporary, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Move-Item -LiteralPath $temporary -Destination $Path -Force
+    }
+    finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
+}
+
+function Test-ForjaJunction {
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$ExpectedTarget)
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    $item = Get-Item -LiteralPath $Path -Force
+    if (-not (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and $item.PSIsContainer)) { return $false }
+    $target = @($item.Target | Select-Object -First 1)[0]
+    if ([string]::IsNullOrWhiteSpace($target)) { return $false }
+    return [string]::Equals([IO.Path]::GetFullPath($target), [IO.Path]::GetFullPath($ExpectedTarget), [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Set-ForjaJunction {
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$Target)
+    $fullPath = [IO.Path]::GetFullPath($Path); $fullTarget = [IO.Path]::GetFullPath($Target)
+    if (-not (Test-Path -LiteralPath $fullTarget -PathType Container)) { throw "Junction target does not exist: $fullTarget" }
+    if (Test-Path -LiteralPath $fullPath) {
+        if (Test-ForjaJunction -Path $fullPath -ExpectedTarget $fullTarget) { return [pscustomobject]@{ Path = $fullPath; Target = $fullTarget; Changed = $false } }
+        throw "Junction collision: $fullPath"
+    }
+    New-Item -ItemType Directory -Path (Split-Path -Parent $fullPath) -Force | Out-Null
+    & cmd.exe /d /c "mklink /J `"$fullPath`" `"$fullTarget`"" | Out-Null
+    if ($LASTEXITCODE -ne 0 -or -not (Test-ForjaJunction -Path $fullPath -ExpectedTarget $fullTarget)) { throw "Could not create verified junction: $fullPath" }
+    [pscustomobject]@{ Path = $fullPath; Target = $fullTarget; Changed = $true }
+}
+
+function Update-ForjaMarketplace {
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$PluginPath)
+    $marketplace = if (Test-Path -LiteralPath $Path -PathType Leaf) { try { Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -ErrorAction Stop } catch { throw "Marketplace JSON is invalid: $Path" } } else { [pscustomobject]@{ name = 'forja-development'; interface = [pscustomobject]@{ displayName = 'FORJA Development Pack' }; plugins = @() } }
+    $plugins = @($marketplace.plugins | Where-Object { $_.name -ne $script:ForjaPluginName })
+    $entry = [pscustomobject][ordered]@{ name = $script:ForjaPluginName; source = [pscustomobject][ordered]@{ source = 'local'; path = './plugins/forja-development-pack' }; policy = [pscustomobject][ordered]@{ installation = 'AVAILABLE'; authentication = 'ON_USE' }; category = 'Developer Tools' }
+    $marketplace | Add-Member -NotePropertyName plugins -NotePropertyValue @($plugins + $entry) -Force
+    if (Test-Path -LiteralPath $Path -PathType Leaf) { Copy-Item -LiteralPath $Path -Destination ($Path + '.backup-' + (Get-Date -Format 'yyyyMMddHHmmss')) -ErrorAction Stop }
+    Write-ForjaJsonAtomic -Path $Path -Value $marketplace
+    [pscustomobject]@{ Path = $Path; PluginPath = $PluginPath; Changed = $true }
+}
+
+function Remove-ForjaMarketplaceEntry {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return [pscustomobject]@{ Path = $Path; Changed = $false } }
+    try { $marketplace = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -ErrorAction Stop } catch { throw "Marketplace JSON is invalid: $Path" }
+    $remaining = @($marketplace.plugins | Where-Object { $_.name -ne $script:ForjaPluginName })
+    $changed = $remaining.Count -ne @($marketplace.plugins).Count
+    if ($changed) { $marketplace | Add-Member -NotePropertyName plugins -NotePropertyValue $remaining -Force; Write-ForjaJsonAtomic -Path $Path -Value $marketplace }
+    [pscustomobject]@{ Path = $Path; Changed = $changed }
+}
+
+function Invoke-ForjaValidation {
+    param([Parameter(Mandatory = $true)][string]$RepositoryRoot)
+    $skills = @(Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'plugins\forja-development-pack\skills') -Directory -ErrorAction Stop)
+    if ($skills.Count -ne 12) { throw "Expected 12 skills, found $($skills.Count)." }
+    foreach ($skill in $skills) { if (-not (Test-Path -LiteralPath (Join-Path $skill.FullName 'SKILL.md') -PathType Leaf)) { throw "Skill is missing SKILL.md: $($skill.Name)" } }
+    [pscustomobject]@{ RepositoryRoot = $RepositoryRoot; SkillCount = $skills.Count; Valid = $true }
+}
+
+Export-ModuleMember -Function Resolve-ForjaPaths, Assert-ForjaOrigin, Assert-ForjaCleanTree, Get-ForjaStableVersion, Read-ForjaState, Write-ForjaJsonAtomic, Test-ForjaJunction, Set-ForjaJunction, Update-ForjaMarketplace, Remove-ForjaMarketplaceEntry, Invoke-ForjaValidation
