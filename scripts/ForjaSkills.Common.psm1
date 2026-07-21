@@ -126,7 +126,21 @@ function Update-ForjaMarketplace {
     if (@($marketplace.plugins | Where-Object { $_.name -eq $script:ForjaPluginName }).Count -gt 0) { return [pscustomobject]@{ Path = $Path; PluginPath = $PluginPath; Changed = $false } }
     $pluginsKey = $raw.IndexOf('"plugins"')
     $arrayStart = if ($pluginsKey -lt 0) { -1 } else { $raw.IndexOf('[', $pluginsKey) }
-    $arrayEnd = $raw.LastIndexOf(']')
+    $arrayEnd = -1; $depth = 0; $inString = $false; $escaped = $false
+    if ($arrayStart -ge 0) {
+        for ($index = $arrayStart; $index -lt $raw.Length; $index++) {
+            $character = $raw[$index]
+            if ($inString) {
+                if ($escaped) { $escaped = $false; continue }
+                if ($character -eq '\') { $escaped = $true; continue }
+                if ($character -eq '"') { $inString = $false }
+                continue
+            }
+            if ($character -eq '"') { $inString = $true; continue }
+            if ($character -eq '[') { $depth++; continue }
+            if ($character -eq ']') { $depth--; if ($depth -eq 0) { $arrayEnd = $index; break } }
+        }
+    }
     if ($arrayStart -lt 0 -or $arrayEnd -le $arrayStart) { throw "Marketplace plugins array cannot be updated safely: $Path" }
     $entryJson = '{"name":"forja-development-pack","source":{"source":"local","path":"./plugins/forja-development-pack"},"policy":{"installation":"AVAILABLE","authentication":"ON_USE"},"category":"Developer Tools"}'
     $between = $raw.Substring($arrayStart + 1, $arrayEnd - $arrayStart - 1)
