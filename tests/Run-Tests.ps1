@@ -1307,6 +1307,11 @@ function Assert-LifecycleSuite {
         $marketResult = Update-ForjaMarketplace -Path $marketplace -PluginPath $paths.PluginPath
         $market = Get-Content -LiteralPath $marketplace -Raw | ConvertFrom-Json
         if (@($market.plugins | Where-Object { $_.name -eq 'foreign-plugin' }).Count -ne 1 -or @($market.plugins | Where-Object { $_.name -eq 'forja-development-pack' }).Count -ne 1) { Add-Failure 'marketplace update did not preserve foreign entries or add the FORJA entry once' }
+        $nestedMarketplace = Join-Path $sandbox 'nested-marketplace.json'; [IO.File]::WriteAllText($nestedMarketplace, '{"plugins":[{"name":"foreign-plugin","marker":"keep"}],"foreignArray":["keep","order"]}')
+        Update-ForjaMarketplace -Path $nestedMarketplace -PluginPath $paths.PluginPath | Out-Null
+        $nestedRaw = [IO.File]::ReadAllText($nestedMarketplace)
+        if (-not $nestedRaw.Contains('"foreignArray":["keep","order"]') -or -not $nestedRaw.Contains('"name":"foreign-plugin","marker":"keep"')) { Add-Failure 'marketplace update modified bytes outside the plugins array when another top-level array follows it' }
+        try { $nested = $nestedRaw | ConvertFrom-Json -ErrorAction Stop; if (@($nested.plugins | Where-Object { $_.name -eq 'forja-development-pack' }).Count -ne 1) { Add-Failure 'marketplace update did not add the FORJA entry to the plugins array before a later array' } } catch { Add-Failure 'marketplace with later top-level array became invalid JSON' }
 
         $statePath = Join-Path $sandbox 'state\state.json'; Write-ForjaJsonAtomic -Path $statePath -Value ([pscustomobject]@{ version = 'v1.2.3'; clone = $repo })
         Write-ForjaJsonAtomic -Path $statePath -Value ([pscustomobject]@{ version = 'v1.2.4'; clone = $repo })
@@ -1326,12 +1331,14 @@ function Assert-LifecycleSuite {
             $source = Join-Path $sandbox 'installer-source'; New-Item -ItemType Directory -Path $source | Out-Null
             Copy-Item -LiteralPath (Join-Path $repoRoot 'plugins') -Destination (Join-Path $source 'plugins') -Recurse
             Set-Content -LiteralPath (Join-Path $source 'VERSION') -Value '1.0.0' -NoNewline
-            & git -C $source init -q; & git -C $source config user.email lifecycle@example.invalid; & git -C $source config user.name Lifecycle; & git -C $source add .; & git -C $source commit -qm fixture; & git -C $source tag v1.0.0; & git -C $source remote add origin 'https://github.com/Pedroasz/forja-agent-skills.git'
+            $oldErrorAction = $ErrorActionPreference; $ErrorActionPreference = 'Continue'; $gitOutput = & git -C $source init -q 2>&1; $gitOutput += & git -C $source config user.email lifecycle@example.invalid 2>&1; $gitOutput += & git -C $source config user.name Lifecycle 2>&1; $gitOutput += & git -C $source add . 2>&1; $gitOutput += & git -C $source commit -qm fixture 2>&1; $gitOutput += & git -C $source tag v1.0.0 2>&1; $gitOutput += & git -C $source remote add origin 'https://github.com/Pedroasz/forja-agent-skills.git' 2>&1; $ErrorActionPreference = $oldErrorAction
+            if (($gitOutput -join "`n") -match '(?i)warning|LF will be replaced by CRLF') { Add-Failure 'sandbox Git fixture emitted warning noise' }
             $foreignSkill = Join-Path $sandboxHome '.agents\skills\foreign-skill'; New-Item -ItemType Directory -Path $foreignSkill -Force | Out-Null; $foreignSkillFile = Join-Path $foreignSkill 'foreign.txt'; [IO.File]::WriteAllText($foreignSkillFile, 'foreign')
             $sandboxMarketplace = Join-Path $sandboxHome '.agents\plugins\marketplace.json'; New-Item -ItemType Directory -Path (Split-Path -Parent $sandboxMarketplace) -Force | Out-Null; [IO.File]::WriteAllText($sandboxMarketplace, '{"name":"foreign","plugins":[{"name":"foreign-plugin","foreignMarker":"do-not-rewrite"}]}')
             $foreignSkillBytes = [IO.File]::ReadAllBytes($foreignSkillFile); $foreignEntryBytes = [Text.Encoding]::UTF8.GetBytes('"name":"foreign-plugin","foreignMarker":"do-not-rewrite"')
             $oldErrorAction = $ErrorActionPreference; $ErrorActionPreference = 'Continue'; $installOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File $installerPath -CloneRoot $source -Version v1.0.0 -NonInteractive 2>&1; $ErrorActionPreference = $oldErrorAction
             if ($LASTEXITCODE -ne 0) { Add-Failure ('installer E2E failed for the allowlisted sandbox repository: ' + ($installOutput -join ' ')); return }
+            if ((@($installOutput | Where-Object { "$_" -notmatch '^Installed FORJA skills v1\.0\.0\. Restart Codex or start a new session to discover them\.$' }).Count -ne 0)) { Add-Failure ('installer E2E emitted unexpected output: ' + ($installOutput -join ' ')) }
             $installed = Resolve-ForjaPaths -CloneRoot $source
             $links = @(Get-ChildItem -LiteralPath $installed.SkillsRoot -Directory | Where-Object { $_.Name -like 'forja-*' })
             if ($links.Count -ne 12 -or @($links | Where-Object { -not (Test-ForjaJunction -Path $_.FullName -ExpectedTarget (Join-Path $source ('plugins\forja-development-pack\skills\' + $_.Name))) }).Count -ne 0) { Add-Failure 'installer E2E did not create 12 verified skill junctions' }
