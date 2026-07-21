@@ -1296,10 +1296,10 @@ function Assert-LifecycleSuite {
         & git -C $repo remote set-url origin 'http://github.com/Pedroasz/forja-agent-skills.git'
         try { Assert-ForjaOrigin -RepositoryRoot $repo | Out-Null; Add-Failure 'non-HTTPS origin was accepted' } catch {}
 
-        $target = Join-Path $sandbox 'target'; $link = Join-Path $sandbox 'link'; New-Item -ItemType Directory -Path $target | Out-Null
+        $target = Join-Path $sandbox 'target'; $otherTarget = Join-Path $sandbox 'other-target'; $link = Join-Path $sandbox 'link'; New-Item -ItemType Directory -Path $target | Out-Null; New-Item -ItemType Directory -Path $otherTarget | Out-Null
         Set-ForjaJunction -Path $link -Target $target | Out-Null
         if (-not (Test-ForjaJunction -Path $link -ExpectedTarget $target)) { Add-Failure 'junction target verification failed' }
-        try { Set-ForjaJunction -Path $link -Target (Join-Path $sandbox 'other') | Out-Null; Add-Failure 'junction collision was accepted' } catch {}
+        try { Set-ForjaJunction -Path $link -Target $otherTarget | Out-Null; Add-Failure 'junction collision with an existing valid target was accepted' } catch { if ($_.Exception.Message -notmatch 'Junction collision') { Add-Failure "junction collision failed for the wrong reason: $($_.Exception.Message)" } }
 
         $marketplace = Join-Path $sandbox 'marketplace.json'; Set-Content -LiteralPath $marketplace -Value '{ invalid'
         try { Update-ForjaMarketplace -Path $marketplace -PluginPath $paths.PluginPath | Out-Null; Add-Failure 'invalid marketplace was accepted' } catch {}
@@ -1309,9 +1309,18 @@ function Assert-LifecycleSuite {
         if (@($market.plugins | Where-Object { $_.name -eq 'foreign-plugin' }).Count -ne 1 -or @($market.plugins | Where-Object { $_.name -eq 'forja-development-pack' }).Count -ne 1) { Add-Failure 'marketplace update did not preserve foreign entries or add the FORJA entry once' }
 
         $statePath = Join-Path $sandbox 'state\state.json'; Write-ForjaJsonAtomic -Path $statePath -Value ([pscustomobject]@{ version = 'v1.2.3'; clone = $repo })
+        Write-ForjaJsonAtomic -Path $statePath -Value ([pscustomobject]@{ version = 'v1.2.4'; clone = $repo })
         $state = Read-ForjaState -StatePath $statePath
-        if ($state.version -ne 'v1.2.3' -or -not (Test-Path -LiteralPath $statePath)) { Add-Failure 'atomic state write did not produce readable state JSON' }
+        if ($state.version -ne 'v1.2.4' -or -not (Test-Path -LiteralPath $statePath)) { Add-Failure 'atomic state replacement did not produce readable replacement JSON' }
         if (Get-ChildItem -LiteralPath (Split-Path -Parent $statePath) -Filter '*.tmp' -ErrorAction SilentlyContinue) { Add-Failure 'atomic state write left a temporary file' }
+        Write-ForjaJsonAtomic -Path $marketplace -Value ([pscustomobject]@{ name = 'foreign'; plugins = @([pscustomobject]@{ name = 'foreign-plugin' }) })
+        try { Get-Content -LiteralPath $marketplace -Raw | ConvertFrom-Json -ErrorAction Stop | Out-Null } catch { Add-Failure 'atomic marketplace replacement did not preserve valid JSON' }
+        if (Get-ChildItem -LiteralPath (Split-Path -Parent $marketplace) -Filter '*.tmp' -ErrorAction SilentlyContinue) { Add-Failure 'atomic marketplace replacement left a temporary file' }
+        $moduleSource = Get-Content -LiteralPath $modulePath -Raw
+        if ($moduleSource -notmatch '\[System\.IO\.File\]::Replace\(') { Add-Failure 'atomic replacement is missing same-volume File.Replace for existing files' }
+        if ($moduleSource -notmatch 'function Invoke-ForjaGitClone' -or $moduleSource -notmatch 'function Invoke-ForjaGitCheckout') { Add-Failure 'installer git clone and checkout wrappers are missing' }
+        $installerSource = Get-Content -LiteralPath $installerPath -Raw
+        if (($installerSource | Select-String -Pattern '\$NonInteractive' -AllMatches).Matches.Count -lt 2) { Add-Failure 'NonInteractive has no explicit no-prompt contract' }
         Write-Output 'PASS: lifecycle suite'
     }
     finally { if (Test-Path -LiteralPath $sandbox) { Remove-Item -LiteralPath $sandbox -Recurse -Force } }
