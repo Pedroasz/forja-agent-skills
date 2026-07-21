@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Manifests', 'Routing', 'SkillTriggers', 'SkillPack')]
+    [ValidateSet('Manifests', 'Routing', 'SkillTriggers', 'SkillPack', 'Lifecycle')]
     [string]$Suite = 'Manifests'
 )
 
@@ -1267,6 +1267,56 @@ function Assert-SkillPackSuite {
     if ($failures.Count -eq 0) { Write-Output 'PASS: skill pack suite' }
 }
 
+function Assert-LifecycleSuite {
+    $modulePath = Join-Path $repoRoot 'scripts/ForjaSkills.Common.psm1'
+    $installerPath = Join-Path $repoRoot 'scripts/Install-ForjaSkills.ps1'
+    if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) { Add-Failure 'missing behavior: ForjaSkills.Common.psm1 module for lifecycle path, origin, tree, tag, junction, marketplace, and state checks'; return }
+    if (-not (Test-Path -LiteralPath $installerPath -PathType Leaf)) { Add-Failure 'missing behavior: Install-ForjaSkills.ps1 installer'; return }
+    Import-Module $modulePath -Force
+    $sandbox = Join-Path ([System.IO.Path]::GetTempPath()) ('forja-lifecycle-' + [guid]::NewGuid().ToString('N'))
+    try {
+        New-Item -ItemType Directory -Path $sandbox -Force | Out-Null
+        $paths = Resolve-ForjaPaths -CloneRoot $sandbox
+        if ($paths.CloneRoot -ne [System.IO.Path]::GetFullPath($sandbox)) { Add-Failure 'path resolution does not preserve the supplied sandbox clone root' }
+        if ($paths.SkillsRoot -notmatch '\\.agents\\skills$' -or $paths.PluginPath -notmatch '\\.agents\\plugins\\forja-development-pack$') { Add-Failure 'path resolution does not use official agents skill and plugin paths' }
+
+        $repo = Join-Path $sandbox 'repo'; New-Item -ItemType Directory -Path $repo | Out-Null
+        & git -C $repo init -q; & git -C $repo config user.email lifecycle@example.invalid; & git -C $repo config user.name Lifecycle
+        Set-Content -LiteralPath (Join-Path $repo 'README.md') -Value 'fixture' -NoNewline
+        & git -C $repo add README.md; & git -C $repo commit -qm fixture
+        & git -C $repo remote add origin 'https://github.com/Pedroasz/forja-agent-skills.git'
+        Assert-ForjaOrigin -RepositoryRoot $repo | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'dirty.txt') -Value dirty
+        try { Assert-ForjaCleanTree -RepositoryRoot $repo; Add-Failure 'dirty tree was accepted' } catch { if ($_.Exception.Message -notmatch 'dirty') { Add-Failure "dirty tree failed for the wrong reason: $($_.Exception.Message)" } }
+        Remove-Item -LiteralPath (Join-Path $repo 'dirty.txt') -Force
+        & git -C $repo tag v1.2.3
+        $stable = Get-ForjaStableVersion -RepositoryRoot $repo -Version 'v1.2.3'
+        if ($stable.Version -ne 'v1.2.3' -or [string]::IsNullOrWhiteSpace($stable.Commit)) { Add-Failure 'stable tag did not resolve to an exact commit' }
+        foreach ($badVersion in @('main', 'v1.2.3-rc.1', '1.2.3')) { try { Get-ForjaStableVersion -RepositoryRoot $repo -Version $badVersion | Out-Null; Add-Failure "unstable version was accepted: $badVersion" } catch {} }
+        & git -C $repo remote set-url origin 'http://github.com/Pedroasz/forja-agent-skills.git'
+        try { Assert-ForjaOrigin -RepositoryRoot $repo | Out-Null; Add-Failure 'non-HTTPS origin was accepted' } catch {}
+
+        $target = Join-Path $sandbox 'target'; $link = Join-Path $sandbox 'link'; New-Item -ItemType Directory -Path $target | Out-Null
+        Set-ForjaJunction -Path $link -Target $target | Out-Null
+        if (-not (Test-ForjaJunction -Path $link -ExpectedTarget $target)) { Add-Failure 'junction target verification failed' }
+        try { Set-ForjaJunction -Path $link -Target (Join-Path $sandbox 'other') | Out-Null; Add-Failure 'junction collision was accepted' } catch {}
+
+        $marketplace = Join-Path $sandbox 'marketplace.json'; Set-Content -LiteralPath $marketplace -Value '{ invalid'
+        try { Update-ForjaMarketplace -Path $marketplace -PluginPath $paths.PluginPath | Out-Null; Add-Failure 'invalid marketplace was accepted' } catch {}
+        Set-Content -LiteralPath $marketplace -Value '{"name":"foreign","plugins":[{"name":"foreign-plugin"}]}'
+        $marketResult = Update-ForjaMarketplace -Path $marketplace -PluginPath $paths.PluginPath
+        $market = Get-Content -LiteralPath $marketplace -Raw | ConvertFrom-Json
+        if (@($market.plugins | Where-Object { $_.name -eq 'foreign-plugin' }).Count -ne 1 -or @($market.plugins | Where-Object { $_.name -eq 'forja-development-pack' }).Count -ne 1) { Add-Failure 'marketplace update did not preserve foreign entries or add the FORJA entry once' }
+
+        $statePath = Join-Path $sandbox 'state\state.json'; Write-ForjaJsonAtomic -Path $statePath -Value ([pscustomobject]@{ version = 'v1.2.3'; clone = $repo })
+        $state = Read-ForjaState -StatePath $statePath
+        if ($state.version -ne 'v1.2.3' -or -not (Test-Path -LiteralPath $statePath)) { Add-Failure 'atomic state write did not produce readable state JSON' }
+        if (Get-ChildItem -LiteralPath (Split-Path -Parent $statePath) -Filter '*.tmp' -ErrorAction SilentlyContinue) { Add-Failure 'atomic state write left a temporary file' }
+        Write-Output 'PASS: lifecycle suite'
+    }
+    finally { if (Test-Path -LiteralPath $sandbox) { Remove-Item -LiteralPath $sandbox -Recurse -Force } }
+}
+
 if ($Suite -eq 'Manifests') {
     Assert-JsonManifest `
         -Path (Join-Path $repoRoot 'plugins/forja-development-pack/.codex-plugin/plugin.json') `
@@ -1305,6 +1355,9 @@ elseif ($Suite -eq 'Routing') {
 }
 elseif ($Suite -eq 'SkillPack') {
     Assert-SkillPackSuite
+}
+elseif ($Suite -eq 'Lifecycle') {
+    Assert-LifecycleSuite
 }
 else {
     Assert-SkillTriggerSuite
